@@ -98,6 +98,11 @@ presets = ["普通","开心","伤心","生气","害怕","害羞","惊讶","认�
 - 插件可调用 `generator_api.generate_reply(...)` 生成/润色回复，再转语音发送
 - 若回复文本超长，会降级为文字回复
 
+按情绪回复（Action 场景）：
+- 如果你的 LLM/工作流支持给 Action 传参，可以把 `emotion` 一起传入（例如：`开心`/`伤心`/`生气`…），后端会按 `[easytts.emotion_preset_map]` 自动选 preset
+- 情绪值建议从 `easytts.emotion_preset_map` 的 key 里选（或在该映射里补齐同义词），否则会回退到默认 preset
+- 优先级：当 `voice` 显式指定为 `角色:预设` 时（例如 `mika:普通`），不会被 `emotion` 覆盖
+
 ## 4) 如何抓 studio_token / fn_index / trigger_id
 
 在浏览器打开你的 ms.show WebUI：
@@ -117,4 +122,3 @@ presets = ["普通","开心","伤心","生气","害怕","害羞","惊讶","认�
 
 本插件参考并改造自 `xuqian13/tts_voice_plugin`，按 **AGPL-3.0** 分发：
 - 详见 `LICENSE` 与 `NOTICE.md`
-
