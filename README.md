@@ -1,33 +1,38 @@
-﻿# EasyttsPlugin
+# EasyttsPlugin（MaiBot QQ 机器人语音合成插件）
 
-这是一个 MaiBot 插件，用于调用你部署在 ModelScope Studio / Gradio 上的 easytts（Genie-TTS 推理）来做文本转语音，并支持：
-- 云端仓库池（多 endpoint 自动切换/失败切换）
-- 按情绪选择预设（emotion -> preset 映射）
+本仓库根目录就是插件目录（克隆下来即可直接作为 MaiBot 插件使用）。
 
-仓库目录结构：
-- `EasyttsPlugin/`：插件本体（放到 MaiBot 的 plugins 目录）
+功能：
+- 命令：`/eztts` 文本转语音
+- Action：关键词触发自动语音回复（可调用 LLM 生成/润色回复，再转语音）
+- 云端仓库池：配置多个 `endpoints`，根据队列忙碌度/失败自动切换
+- 情绪预设：`emotion -> preset` 映射（用于“按情绪回复”）
 
-## 1. 安装到 QQ 机器人（MaiBot）
+## 1) 安装
 
-1) 复制插件目录
-- 把本仓库里的 `EasyttsPlugin/` 整个目录复制到你的 MaiBot 插件目录（与其他插件同级）。
-- 例如：`<MaiBot>/plugins/EasyttsPlugin/` 下面应当存在 `plugin.py`。
+把本仓库克隆到 MaiBot 的插件目录（与其它插件同级）。示例：
 
-2) 安装依赖
-- 本插件依赖 `aiohttp`。
+```bash
+cd <你的MaiBot项目>/plugins
+git clone https://github.com/YunChenqwq/EasyttsPlugin.git
+```
 
-3) 重启 MaiBot
-- 重启后插件会被自动加载（以 MaiBot 的插件机制为准）。
+克隆完成后应满足：
+- `<你的MaiBot项目>/plugins/EasyttsPlugin/plugin.py` 存在
 
-## 2. 配置（必看）
+依赖：
+- Python 包：`aiohttp`
 
-编辑 `EasyttsPlugin/config.toml`。
+## 2) 配置（必须）
 
-### 2.1 配置云端仓库池 endpoints
-你需要至少配置一个 endpoint：
-- `base_url`：你的 ms.show 域名（例如 `https://xxx.ms.show`）
-- `studio_token`：从浏览器抓包得到的 token
-- `fn_index` / `trigger_id`：对应 WebUI 的“生成语音”按钮函数索引（你之前抓包得到的是 `fn_index=3`、`trigger_id=19`）
+编辑 `config.toml`。
+
+### 2.1 endpoints（云端仓库池）
+
+至少填 1 个：
+- `base_url`: 你的 WebUI 部署域名（例如 `https://xxx.ms.show`）
+- `studio_token`: 浏览器抓包拿到（敏感信息，不要泄露）
+- `fn_index` / `trigger_id`: 对应 Gradio 按钮函数索引（你之前抓包是 `fn_index=3`、`trigger_id=19`）
 
 示例：
 ```toml
@@ -46,13 +51,10 @@ fn_index = 3
 trigger_id = 19
 ```
 
-说明：
-- 插件会优先选择 `queue_size` 更小的仓库；当某个仓库繁忙/失败时自动切换到下一个。
+### 2.2 角色与情绪预设（按情绪回复）
 
-### 2.2 配置角色与情绪预设（按情绪回复）
-
-- `easytts.characters` 用于维护“有哪些角色/模型”和“该角色有哪些预设”。
-- `[easytts.emotion_preset_map]` 用于把 emotion 映射为你的云端 preset 名称。
+- `easytts.characters`: 维护“角色(模型) -> 可用预设(preset)”列表
+- `[easytts.emotion_preset_map]`: 把 `emotion` 映射到你的云端 `preset` 名称
 
 示例（mika）：
 ```toml
@@ -76,37 +78,43 @@ presets = ["普通","开心","伤心","生气","害怕","害羞","惊讶","认�
 
 规则：
 - 如果你在命令里显式写了 `-v mika:普通`，则不会被 `-e` 覆盖。
-- 如果你只写 `-v mika` 或不写 `-v`，并且传了 `-e 伤心`，则会自动把 preset 选成 `伤心`。
+- 如果你只写 `-v mika`（或不写 `-v`）并且传了 `-e 伤心`，会自动选 preset=伤心。
 
-## 3. 使用方法
+## 3) 使用
 
 ### 3.1 命令（只保留 /eztts）
+
 - `/eztts 你好世界`
 - `/eztts 今天天气不错 -v mika:普通`
 - `/eztts 我有点难过 -v mika -e 伤心`
 
-参数说明：
-- `-v`：`角色:预设`，或只写 `角色`
-- `-e`：情绪（会映射为 preset）
+参数：
+- `-v`: `角色:预设` 或仅 `角色`
+- `-e`: 情绪（会映射为 preset）
 
-### 3.2 Action 自动触发
-- 当用户消息包含“语音/朗读/说出来/tts/voice/speak”等关键词时，Action 会被触发。
-- 插件会调用 LLM（`generator_api.generate_reply`）生成/润色回复文本，再转语音发送。
-- 如果回复文本超长，会降级为文字回复。
+### 3.2 Action 自动触发（关键词）
 
-## 4. 如何获取 studio_token / fn_index / trigger_id
+当用户消息包含 “语音/朗读/说出来/tts/voice/speak ……” 等关键词时会触发 Action：
+- 插件可调用 `generator_api.generate_reply(...)` 生成/润色回复，再转语音发送
+- 若回复文本超长，会降级为文字回复
 
-你可以在浏览器打开你的 ms.show WebUI，按 F12 -> Network：
-- 找 `/gradio_api/queue/join` 请求
-- query 或 header 里能看到 `studio_token`
-- request body 里能看到 `fn_index` / `trigger_id`
+## 4) 如何抓 studio_token / fn_index / trigger_id
 
-## 5. 排错
+在浏览器打开你的 ms.show WebUI：
+1. F12 -> Network
+2. 触发一次合成
+3. 找请求：`/gradio_api/queue/join`
+4. 请求里能看到：
+   - `studio_token`
+   - body 里有 `fn_index` / `trigger_id`
 
-- 合成超时：调整 `easytts.sse_timeout`（默认 120 秒）
-- Git/网络：如果你机器开了系统代理，git 可能需要显式设置 `http.proxy/https.proxy`。
+## 5) 排错
 
-## 6. 开源协议（重要）
+- 合成超时：改 `easytts.sse_timeout`（秒）
+- Windows 代理：如果你启用了系统代理，git/网络请求可能需要显式走代理（视运行环境而定）
 
-本插件参考并改造自 `xuqian13/tts_voice_plugin`，因此本仓库按 **AGPL-3.0** 分发。
-- 详见：`LICENSE` 与 `EasyttsPlugin/NOTICE.md`
+## 6) 许可证（重要）
+
+本插件参考并改造自 `xuqian13/tts_voice_plugin`，按 **AGPL-3.0** 分发：
+- 详见 `LICENSE` 与 `NOTICE.md`
+

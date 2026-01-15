@@ -1,9 +1,9 @@
 ﻿"""
-统一 TTS 语音合成插件（EasyttsPugin）
+统一 TTS 语音合成插件（EasyttsPlugin）
 
 目标：除“语音合成后端”替换为 easytts 之外，尽量保持 xuqian13/tts_voice_plugin 的功能与行为一致：
 - Action：关键词触发，生成/润色回复文本后转语音发送
-- Command：/tts /voice /gsv2p /gptsovits /doubao /cosyvoice 等命令兼容（均路由到 easytts）
+- Command：仅保留 /eztts
 - 概率控制 / 强制关键词 / 分段发送 / SPLIT 标记 / 失败降级为文字
 """
 
@@ -23,11 +23,11 @@ from src.plugin_system.base.component_types import ComponentInfo, ChatMode
 from src.plugin_system.base.config_types import ConfigField
 from src.plugin_system.apis import generator_api
 
-from .backends import TTSBackendRegistry, TTSResult
-from .config_keys import ConfigKeys
-from .utils.text import TTSTextUtils
+from backends import TTSBackendRegistry, TTSResult
+from config_keys import ConfigKeys
+from utils.text import TTSTextUtils
 
-logger = get_logger("EasyttsPugin")
+logger = get_logger("EasyttsPlugin")
 
 VALID_BACKENDS = ["easytts"]
 

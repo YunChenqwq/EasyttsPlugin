@@ -8,7 +8,7 @@
                    "url":  "https://github.com/YunChenqwq"
                },
     "license":  "AGPL-v3.0",
-    "repository_url":  "https://github.com/YunChenqwq/easytts",
+    "repository_url":  "https://github.com/YunChenqwq/EasyttsPlugin",
     "default_locale":  "zh-CN",
     "plugin_info":  {
                         "plugin_type":  "general",
@@ -21,7 +21,7 @@
                                            {
                                                "type":  "command",
                                                "name":  "unified_tts_command",
-                                               "description":  "手动 /tts 转语音（easytts 仓库池）。"
+                                               "description":  "手动 /eztts 转语音（easytts 仓库池）。"
                                            }
                                        ],
                         "dependencies":  {

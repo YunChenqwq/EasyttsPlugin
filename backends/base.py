@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from src.common.logger import get_logger
 
-from ..config_keys import ConfigKeys
+from config_keys import ConfigKeys
 
 logger = get_logger("easytts_backend")
 
@@ -46,7 +46,7 @@ class TTSBackendBase(ABC):
         prefix: str = "tts",
         voice_info: str = "",
     ) -> TTSResult:
-        from ..utils.file import TTSFileManager
+        from utils.file import TTSFileManager
 
         use_base64 = self.get_config(ConfigKeys.GENERAL_USE_BASE64_AUDIO, True)
 

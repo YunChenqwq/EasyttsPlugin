@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.common.logger import get_logger
 
-from ..config_keys import ConfigKeys
-from ..utils.file import TTSFileManager
-from ..utils.session import TTSSessionManager
+from config_keys import ConfigKeys
+from utils.file import TTSFileManager
+from utils.session import TTSSessionManager
 from .base import TTSBackendBase, TTSResult
 
 logger = get_logger("easytts_backend.easytts")
