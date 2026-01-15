@@ -1,4 +1,4 @@
-"""
+﻿"""
 统一 TTS 语音合成插件（EasyttsPugin）
 
 目标：除“语音合成后端”替换为 easytts 之外，尽量保持 xuqian13/tts_voice_plugin 的功能与行为一致：
@@ -337,8 +337,8 @@ class UnifiedTTSCommand(BaseCommand, TTSExecutorMixin):
 
 
 @register_plugin
-class EasyttsPuginPlugin(BasePlugin):
-    plugin_name = "EasyttsPugin"
+class EasyttsPluginPlugin(BasePlugin):
+    plugin_name = "EasyttsPlugin"
     plugin_description = "easytts 语音合成插件（云端仓库池自动切换）"
     plugin_version = "0.1.0"
     plugin_author = "yunchenqwq"
@@ -438,3 +438,4 @@ class EasyttsPuginPlugin(BasePlugin):
         if command_enabled:
             components.append((UnifiedTTSCommand.get_command_info(), UnifiedTTSCommand))
         return components
+
