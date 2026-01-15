@@ -50,13 +50,18 @@ class TTSBackendBase(ABC):
 
         use_base64 = self.get_config(ConfigKeys.GENERAL_USE_BASE64_AUDIO, True)
 
+        if not audio_data:
+            return TTSResult(False, "音频为空", backend_name=self.backend_name)
+
         if use_base64:
             base64_audio = TTSFileManager.audio_to_base64(audio_data)
             if not base64_audio:
                 return TTSResult(False, "音频转 base64 失败", backend_name=self.backend_name)
             if not self._send_custom:
                 return TTSResult(False, "send_custom 未设置", backend_name=self.backend_name)
-            await self._send_custom(message_type="voice", content=base64_audio)
+            ok = await self._send_custom(message_type="voice", content=base64_audio)
+            if not ok:
+                return TTSResult(False, "发送语音失败（base64）", backend_name=self.backend_name)
             return TTSResult(
                 True,
                 f"已发送 {self.backend_name} 语音{(' ('+voice_info+')') if voice_info else ''}（base64）",
@@ -69,7 +74,9 @@ class TTSBackendBase(ABC):
             return TTSResult(False, "保存音频文件失败", backend_name=self.backend_name)
         if not self._send_custom:
             return TTSResult(False, "send_custom 未设置", backend_name=self.backend_name)
-        await self._send_custom(message_type="voiceurl", content=audio_path)
+        ok = await self._send_custom(message_type="voiceurl", content=audio_path)
+        if not ok:
+            return TTSResult(False, "发送语音失败（voiceurl）", backend_name=self.backend_name)
         asyncio.create_task(TTSFileManager.cleanup_file_async(audio_path, delay=30))
         return TTSResult(
             True,

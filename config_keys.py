@@ -9,15 +9,19 @@ class ConfigKeys:
     PLUGIN_CONFIG_VERSION = "plugin.config_version"
 
     # General
+    GENERAL_TTS_MODE = "general.tts_mode"
     GENERAL_DEFAULT_BACKEND = "general.default_backend"
     GENERAL_TIMEOUT = "general.timeout"
     GENERAL_MAX_TEXT_LENGTH = "general.max_text_length"
     GENERAL_USE_REPLYER_REWRITE = "general.use_replyer_rewrite"
     GENERAL_AUDIO_OUTPUT_DIR = "general.audio_output_dir"
     GENERAL_USE_BASE64_AUDIO = "general.use_base64_audio"
-    GENERAL_SPLIT_SENTENCES = "general.split_sentences"
     GENERAL_SPLIT_DELAY = "general.split_delay"
     GENERAL_SEND_ERROR_MESSAGES = "general.send_error_messages"
+    GENERAL_SEND_TEXT_ALONG_WITH_VOICE = "general.send_text_along_with_voice"
+    GENERAL_VOICE_TRANSLATE_TO = "general.voice_translate_to"
+    GENERAL_FORCE_TEXT_LANGUAGE = "general.force_text_language"
+    GENERAL_FIXED_MODE_INFER_EMOTION = "general.fixed_mode_infer_emotion"
 
     # Components
     COMPONENTS_ACTION_ENABLED = "components.action_enabled"
