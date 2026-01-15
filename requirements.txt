@@ -1,0 +1,3 @@
+# Plugin runtime deps (MaiBot will auto-install this file if it supports requirements.txt).
+aiohttp>=3.8.0
+
