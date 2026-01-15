@@ -1,4 +1,4 @@
-# EasyttsPlugin（MaiBot QQ 机器人语音合成插件）
+﻿# EasyttsPlugin（MaiBot QQ 机器人语音合成插件）
 
 本仓库根目录就是插件目录（克隆下来即可直接作为 MaiBot 插件使用）。
 
