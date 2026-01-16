@@ -735,9 +735,9 @@ class EasyttsPuginPlugin(BasePlugin):
             "force_text_language": ConfigField(
                 type=str,
                 default="zh",
-                choices=["zh", ""],
-                description="强制“发出去的文字”语言：zh=始终发中文（避免把日语译文直接发出去）；留空=不强制",
-                hint="建议 zh：避免 LLM 把日语译文发到聊天里。",
+                choices=["zh", "off"],
+                description="强制“发出去的文字”语言：zh=始终发中文（避免把日语译文直接发出去）；off=不强制",
+                hint="建议 zh：避免 LLM 把日语译文发到聊天里；如想允许发日语文字，改为 off。",
                 example="zh",
             ),
             "fixed_mode_infer_emotion": ConfigField(
