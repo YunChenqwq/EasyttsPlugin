@@ -758,16 +758,6 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
                 disabled=True,
                 hint="请勿修改（用于区分配置结构版本）。",
             ),
-            "tips": ConfigField(
-                type=str,
-                default="请不要在bot自己的webui中编辑配置文件，请打开文件编辑。",
-                description="提示（建议只读）：如何正确编辑 config.toml",
-                label="重要提示",
-                input_type="textarea",
-                rows=4,
-                disabled=True,
-                order=-999,
-            ),
         },
         "general": {
             "tts_mode": ConfigField(

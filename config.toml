@@ -1,7 +1,6 @@
 [plugin]
 enabled = true # 是否启用插件
 config_version = "0.1.0" # 配置版本（请勿修改）
-tips = "请不要在bot自己的webui中编辑配置文件，请打开文件编辑。" # 重要提示（WebUI 会显示这个字段）
 
 [general]
 tts_mode = "fixed" # TTS 模式：free=自由模式（交给 LLM 决定是否用语音）；fixed=固定模式（逐句翻译并逐句发送语音）
