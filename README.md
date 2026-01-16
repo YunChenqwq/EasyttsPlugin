@@ -1,39 +1,176 @@
 # EasyttsPugin（MaiBot 插件）
 
-本目录是一个 **MaiBot 插件**，用于把基于 GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）的语音合成能力，通过魔搭社区（ModelScope Studio / Gradio）免费托管接入到机器人里（支持按情绪生成语音）。
+基于 **GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）** 的 WebUI（ModelScope Studio / Gradio，ms.show 免费托管）实现语音合成，并提供 **云端仓库池自动切换** 与 **按情绪/预设生成语音** 的 MaiBot 插件。
 
-## 功能
-- `/eztts` 命令把文本转语音
-- 关键词触发的 Action（自动语音回复）
-- 云端仓库池：可配置多个 `endpoints`，优先选择 `queue_size` 更小的仓库；当某个仓库繁忙/失败时自动切换
-- 按情绪回复：`emotion` 直接当作 `preset` 使用（无需任何映射；必须是该角色实际存在的 preset）
+## 功能概览
 
-## 安装
-把整个 `EasyttsPugin/` 目录放进你的 MaiBot 插件目录（与其他插件同级）。
+- 自动语音回复（Action，`LLM_JUDGE`）：由规划器/LLM 决定是否调用语音
+- 手动命令：`/eztts`
+- 诊断命令：`/test`（发送插件目录自带 `test.wav`）
+- 云端仓库池：配置多个 `endpoints`，优先选更空闲的仓库；失败自动切换
+- 按情绪/预设：**emotion 参数直接等同 preset 名**（不做任何映射/同义词转换）
+- 语音文本翻译：可把“要发出去的文字”翻译成日语后再合成语音，并强制避免把日语译文发到聊天里（防止“文本/语音不一致”）
 
-## 配置
-编辑 `EasyttsPugin/config.toml`：
-- 必填：`[[easytts.endpoints]]` 的 `base_url`（你的 ms.show 域名）和 `studio_token`
-- 如你的 WebUI 不是默认按钮索引，修改 `fn_index` / `trigger_id`
-- 如需按情绪：维护 `easytts.characters[*].presets`（LLM/命令只应使用该角色真实存在的 preset）
+---
 
-推荐把多个仓库加入池中：
+## 1. 安装（Windows / MaiBotOneKey）
+
+1) 下载/克隆本仓库  
+2) 把整个目录放到你的 MaiBot 插件目录，例如：
+
+```
+E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyttsPugin\
+```
+
+提示：
+- 目录名建议就叫 `EasyttsPugin`（与仓库名 `EasyttsPlugin` 不同属于正常情况）。
+- 插件依赖在 `requirements.txt` 中，MaiBot 加载插件时通常会自动安装；如果没装上请手动 `pip install -r requirements.txt`。
+
+3) 重启 MaiBot（或在 WebUI 里重载插件）
+
+---
+
+## 2. 配置（config.toml）
+
+配置文件：`EasyttsPugin/config.toml`
+
+重要提示：
+- 不建议在 bot 自带 WebUI 里直接编辑 TOML（WebUI 不显示注释，容易误改导致解析失败）。
+- 推荐直接用编辑器打开文件修改，然后重启/重载插件。
+
+### 2.1 云端仓库池（必填）
+
+在 `[[easytts.endpoints]]` 填多个仓库（建议至少 2 个，方便繁忙时自动切换）：
+
 ```toml
 [[easytts.endpoints]]
 name = "pool-1"
 base_url = "https://xxx.ms.show"
-studio_token = "..."
+studio_token = "你的studio_token"
+fn_index = 3
+trigger_id = 19
 
 [[easytts.endpoints]]
 name = "pool-2"
 base_url = "https://yyy.ms.show"
-studio_token = "..."
+studio_token = "你的studio_token"
+fn_index = 3
+trigger_id = 19
 ```
 
-## 用法
+如何获取 `studio_token`（二选一即可）：
+- 浏览器打开你的 ms.show 页面 → 按 F12 → Network → 找到 `gradio_api/queue/join` 请求 → 请求头里有 `x-studio-token` 或 Cookie 里有 `studio_token`
+- 或者 Application/Storage → Cookies → 找到 `studio_token`
+
+`fn_index` / `trigger_id`：
+- 通常可以在 `queue/join` 的请求体里看到（或由你的 WebUI 版本决定）。
+
+### 2.2 角色与预设（characters / presets）
+
+`[[easytts.characters]]` 用来声明“每个角色有哪些 preset（情绪/风格）”。示例：
+
+```toml
+[[easytts.characters]]
+name = "mika"
+presets = ["普通", "开心", "伤心"]
+```
+
+规则（很重要）：
+- 本插件 **不做任何映射**：`emotion` 的值会被当作 **preset 名** 直接使用。
+- 所以你传入的 `emotion` 必须是该角色真实存在的 preset（否则会回退到 `easytts.default_preset`，一般是“普通”）。
+
+自动抓取（推荐开启）：
+- `easytts.auto_fetch_gradio_schema = true` 时，插件启动会从你的 endpoints 自动抓取 “角色下拉 + 每个角色的 preset 下拉”，并写入运行时配置（可选写入 `_gradio_schema_cache.json` 缓存）。
+- 如果你更新了云端模型/预设，但插件没更新：删除插件目录下的 `_gradio_schema_cache.json` 后重启即可强制刷新。
+
+### 2.3 两种模式：free / fixed
+
+`general.tts_mode`：
+- `free`（默认）：自由模式。是否用语音由 LLM 决定；一条用户消息最多调用一次 action（一个消息一个语音）。
+- `fixed`：固定模式。一旦触发，会把回复分句，并对 **每句** 单独生成语音并发送（适合你想“每句都发语音”的场景）。
+
+### 2.4 让“文字/语音一致”的关键设置
+
+默认逻辑：
+- “发出去的文字”：来自 action 的 `text`
+- “合成语音的文本”：可由插件把 `text` 翻译成日语后再合成（避免中文模型读日语/日语模型读中文的问题）
+
+相关配置：
+- `general.voice_translate_to`：默认 `ja`  
+  - `ja`：把文字翻译成日语再合成语音  
+  - 设为空/`off`/`none`：不翻译，直接用原文合成  
+- `general.force_text_language`：默认 `zh`  
+  - 用于避免 LLM 把日语译文发到聊天里（如果检测到 text 是日语，会再翻译回中文作为“发出去的文字”）
+
+### 2.5 语音发送方式（NapCat 兼容）
+
+- `general.use_base64_audio = false`（默认）：生成 wav 文件后，用本地路径发送（通常更稳定/占用更小）
+- 如果你环境不接受本地路径：把它改成 `true`，插件会用 base64 发送音频
+
+---
+
+## 3. 使用方法
+
+### 3.1 手动命令：/eztts
+
+语法：
+
+```
+/eztts <文本> [-v <角色:预设>] [-e <情绪/预设>]
+```
+
+示例：
 - `/eztts 你好世界`
 - `/eztts 今天天气不错 -v mika:普通`
 - `/eztts 我有点难过 -v mika -e 伤心`
 
+参数细节（避免踩坑）：
+- `-v mika:普通`：显式指定 preset，此时 `-e` 会被忽略
+- `-v mika -e 伤心`：只指定角色 + 用 `-e` 指定 preset（推荐这种写法，语义更清晰）
+- `-e` 的值必须在该角色 `presets` 里（或能被自动抓取到的 preset 下拉中找到）
+
+### 3.2 诊断命令：/test
+
+`/test` 会发送插件目录下的 `test.wav`，用于排查：
+- NapCat / OneBot 适配器是否能正常发送语音
+- 如果 `/test` 都发不出去，优先检查底层（适配器/权限/消息段支持），而不是 TTS 合成逻辑
+
+### 3.3 自动语音回复（Action）
+
+1) 打开 `config.toml`，确保：
+```toml
+[components]
+action_enabled = true
+```
+
+2) 选择模式：
+```toml
+[general]
+tts_mode = "free"   # 或 "fixed"
+```
+
+3) 让 LLM 会用：  
+插件提供的 action 名为 `unified_tts_action`。你需要在 bot 的提示词/规划器说明中明确：
+- 什么时候应该用语音（例如用户明确说“用语音说/朗读/tts”等）
+- 一条用户消息最多调用一次（free 模式已经在 action_require 里强约束）
+- `emotion` 只能从该角色真实存在的 preset 里选 1 个
+
+---
+
+## 4. 日志与排错
+
+- 后端每次合成都会打印：
+  - `character`
+  - `emotion(preset)`（如果你传了）
+  - `default_preset`
+  - `available_presets`（该角色可用的 preset 列表）
+- 常见问题：
+  - 连接 ms.show 失败：检查 `base_url/studio_token`，以及是否需要代理；默认 `easytts.trust_env=false` 不走系统代理
+  - 传了 emotion 但没生效：确认你没有用 `-v 角色:预设` 显式锁定 preset；并确认 emotion 值在 preset 列表里
+
+---
+
 ## 开源协议
-本目录按 **AGPL-3.0** 进行分发。详见 `EasyttsPugin/NOTICE.md` 与 `EasyttsPugin/LICENSE`。
+
+本项目按 **AGPL-3.0** 分发，详见 `LICENSE` 与 `NOTICE.md`。
+
