@@ -41,7 +41,123 @@ class TTSExecutorMixin:
     def _cfg(self, key: str, default=None):
         return get_config_with_aliases(self.get_config, key, default)
 
+    def _characters_from_slots(self) -> List[dict]:
+        """
+        从可视化字段（固定 5 个槽位）构造角色列表。
+        这是为了让 MaiBot WebUI 能“可视化编辑”，避免 list[object] 显示为 [object Object]。
+        """
+        easytts_cfg = self.config.get("easytts") if isinstance(self.config, dict) else None
+        if not isinstance(easytts_cfg, dict):
+            return []
+
+        out: List[dict] = []
+        for i in range(1, 6):
+            name = str(easytts_cfg.get(f"character_{i}_name", "") or "").strip()
+            raw_presets = easytts_cfg.get(f"character_{i}_presets", [])
+            presets: List[str] = []
+            if isinstance(raw_presets, list):
+                presets = [str(x).strip() for x in raw_presets if str(x).strip()]
+            if name:
+                out.append({"name": name, "presets": presets})
+        return out
+
+    def _endpoints_from_slots(self) -> List[dict]:
+        """
+        从可视化字段（固定 5 个槽位）构造云端仓库池 endpoints。
+        仅返回 base_url 与 studio_token 都填了的仓库（否则后端校验会失败）。
+        """
+        easytts_cfg = self.config.get("easytts") if isinstance(self.config, dict) else None
+        if not isinstance(easytts_cfg, dict):
+            return []
+
+        out: List[dict] = []
+        for i in range(1, 6):
+            name = str(easytts_cfg.get(f"endpoint_{i}_name", f"pool-{i}") or f"pool-{i}").strip()
+            base_url = str(easytts_cfg.get(f"endpoint_{i}_base_url", "") or "").strip().rstrip("/")
+            token = str(easytts_cfg.get(f"endpoint_{i}_studio_token", "") or "").strip()
+            fn_index = int(easytts_cfg.get(f"endpoint_{i}_fn_index", 3) or 3)
+            trigger_id = int(easytts_cfg.get(f"endpoint_{i}_trigger_id", 19) or 19)
+
+            if not base_url or not token:
+                continue
+            out.append(
+                {
+                    "name": name,
+                    "base_url": base_url,
+                    "studio_token": token,
+                    "fn_index": fn_index,
+                    "trigger_id": trigger_id,
+                }
+            )
+        return out
+
+    def _sync_visual_fields(self) -> None:
+        """
+        让 WebUI 的“可视化字段”与旧版的 list 配置互通：
+        - 若用户旧配置仍是 easytts.characters / easytts.endpoints，则把前 5 项回填到槽位字段里，便于在 WebUI 编辑；
+        - 若用户只填了槽位字段，则在内存里生成 easytts.characters / easytts.endpoints 供后端读取。
+        注意：这里只改内存 self.config，不直接写文件。
+        """
+        if not isinstance(self.config, dict):
+            return
+        easytts_cfg = self.config.setdefault("easytts", {})
+        if not isinstance(easytts_cfg, dict):
+            return
+
+        # 1) slots -> arrays（供后端/逻辑使用）
+        chars = easytts_cfg.get("characters")
+        if not (isinstance(chars, list) and chars):
+            derived = self._characters_from_slots()
+            if derived:
+                easytts_cfg["characters"] = derived
+
+        eps = easytts_cfg.get("endpoints")
+        if not (isinstance(eps, list) and eps):
+            derived = self._endpoints_from_slots()
+            if derived:
+                easytts_cfg["endpoints"] = derived
+
+        # 2) arrays -> slots（供 WebUI 可视化编辑）
+        chars = easytts_cfg.get("characters")
+        if isinstance(chars, list) and chars:
+            idx = 0
+            for item in chars:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name", item.get("角色名", "")) or "").strip()
+                presets_raw = item.get("presets", item.get("预设列表", []))
+                presets = [str(x).strip() for x in presets_raw if str(x).strip()] if isinstance(presets_raw, list) else []
+                if not name:
+                    continue
+                idx += 1
+                if idx > 5:
+                    break
+                easytts_cfg.setdefault(f"character_{idx}_name", name)
+                if f"character_{idx}_presets" not in easytts_cfg:
+                    easytts_cfg[f"character_{idx}_presets"] = presets or ["普通"]
+
+        eps = easytts_cfg.get("endpoints")
+        if isinstance(eps, list) and eps:
+            idx = 0
+            for item in eps:
+                if not isinstance(item, dict):
+                    continue
+                base_url = str(item.get("base_url", item.get("基地址", "")) or "").strip().rstrip("/")
+                token = str(item.get("studio_token", item.get("令牌", "")) or "").strip()
+                if not base_url or not token:
+                    continue
+                idx += 1
+                if idx > 5:
+                    break
+                easytts_cfg.setdefault(f"endpoint_{idx}_name", str(item.get("name", item.get("名称", f"pool-{idx}")) or f"pool-{idx}").strip())
+                easytts_cfg.setdefault(f"endpoint_{idx}_base_url", base_url)
+                easytts_cfg.setdefault(f"endpoint_{idx}_studio_token", token)
+                easytts_cfg.setdefault(f"endpoint_{idx}_fn_index", int(item.get("fn_index", item.get("函数索引", 3)) or 3))
+                easytts_cfg.setdefault(f"endpoint_{idx}_trigger_id", int(item.get("trigger_id", item.get("触发ID", 19)) or 19))
+
     def _create_backend(self, backend_name: str):
+        # 确保后端总能读到 endpoints/characters（无论用户是在 WebUI 槽位编辑，还是旧版 list 配置）。
+        self._sync_visual_fields()
         backend = TTSBackendRegistry.create(
             backend_name,
             lambda k, d=None: get_config_with_aliases(self.get_config, k, d),
@@ -796,28 +912,90 @@ class EasyttsPuginPlugin(BasePlugin):
                 description="schema 缓存文件名（相对插件目录；留空则不落盘缓存）",
                 hint="删除该文件可强制重新抓取。",
             ),
-            "characters": ConfigField(
+            # === 角色/预设（可视化编辑）===
+            # MaiBot WebUI 对 list[object] 的渲染会显示为 [object Object]，不便于编辑；
+            # 因此这里改为固定 5 个“角色槽位”，每个槽位独立字段，确保可视化表单可编辑。
+            "character_1_name": ConfigField(
+                type=str,
+                default="mika",
+                description="角色槽位 1：角色名（character）",
+                group="角色槽位 1",
+                order=10,
+                hint="必须与云端 WebUI 的 character 下拉一致。",
+            ),
+            "character_1_presets": ConfigField(
                 type=list,
-                default=[
-                    {
-                        "name": "mika",
-                        "presets": ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
-                    },
-                    {
-                        "name": "sagiri",
-                        "presets": ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
-                    },
-                    {"name": "character3", "presets": ["普通"]},
-                    {"name": "character4", "presets": ["普通"]},
-                    {"name": "character5", "presets": ["普通"]},
-                ],
-                description="角色模型列表（用于约束 LLM 只使用该角色真实存在的 preset）",
-                # MaiBot 目前的 ConfigField 不支持 item_type/item_fields 这类“列表元素 Schema”定义；
-                # 这里用 json 输入 + 示例/提示来指导用户编辑。
+                default=["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
+                description="角色槽位 1：预设列表（preset）",
+                group="角色槽位 1",
+                order=11,
                 input_type="json",
-                rows=10,
-                example='[{"name":"mika","presets":["普通","开心"]}]',
-                hint='格式: [{"name":"mika","presets":["普通","开心"]}]. 建议开启 auto_fetch_gradio_schema 自动抓取；emotion 参数会直接使用 preset 名（不做任何映射）。',
+                hint="这里的值必须与云端 WebUI 的 preset 下拉一致；emotion 参数会直接使用 preset 名（不做映射）。",
+            ),
+            "character_2_name": ConfigField(
+                type=str,
+                default="sagiri",
+                description="角色槽位 2：角色名（character）",
+                group="角色槽位 2",
+                order=20,
+                hint="必须与云端 WebUI 的 character 下拉一致。",
+            ),
+            "character_2_presets": ConfigField(
+                type=list,
+                default=["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
+                description="角色槽位 2：预设列表（preset）",
+                group="角色槽位 2",
+                order=21,
+                input_type="json",
+                hint="这里的值必须与云端 WebUI 的 preset 下拉一致；emotion 参数会直接使用 preset 名（不做映射）。",
+            ),
+            "character_3_name": ConfigField(
+                type=str,
+                default="character3",
+                description="角色槽位 3：角色名（character）",
+                group="角色槽位 3",
+                order=30,
+                hint="把 character3 改成你自己的角色名；留空则忽略该槽位。",
+            ),
+            "character_3_presets": ConfigField(
+                type=list,
+                default=["普通"],
+                description="角色槽位 3：预设列表（preset）",
+                group="角色槽位 3",
+                order=31,
+                input_type="json",
+            ),
+            "character_4_name": ConfigField(
+                type=str,
+                default="character4",
+                description="角色槽位 4：角色名（character）",
+                group="角色槽位 4",
+                order=40,
+                hint="把 character4 改成你自己的角色名；留空则忽略该槽位。",
+            ),
+            "character_4_presets": ConfigField(
+                type=list,
+                default=["普通"],
+                description="角色槽位 4：预设列表（preset）",
+                group="角色槽位 4",
+                order=41,
+                input_type="json",
+            ),
+            "character_5_name": ConfigField(
+                type=str,
+                default="character5",
+                description="角色槽位 5：角色名（character）",
+                group="角色槽位 5",
+                order=50,
+                hint="把 character5 改成你自己的角色名；留空则忽略该槽位。",
+            ),
+            "character_5_presets": ConfigField(
+                type=list,
+                default=["普通"],
+                description="角色槽位 5：预设列表（preset）",
+                group="角色槽位 5",
+                order=51,
+                input_type="json",
             ),
             "remote_split_sentence": ConfigField(type=bool, default=True, description="是否让远端也进行分句合成"),
             "prefer_idle_endpoint": ConfigField(type=bool, default=True, description="优先选择空闲仓库（queue_size 低）"),
@@ -827,21 +1005,65 @@ class EasyttsPuginPlugin(BasePlugin):
             "sse_timeout": ConfigField(type=int, default=120, description="queue/data SSE 超时（秒）"),
             "download_timeout": ConfigField(type=int, default=120, description="音频下载超时（秒）"),
             "trust_env": ConfigField(type=bool, default=False, description="aiohttp 是否继承系统代理"),
-            "endpoints": ConfigField(
-                type=list,
-                default=[
-                    {"name": "pool-1", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
-                    {"name": "pool-2", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
-                    {"name": "pool-3", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
-                    {"name": "pool-4", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
-                    {"name": "pool-5", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
-                ],
-                description="云端仓库池（多个 endpoints 自动切换）",
-                input_type="json",
-                rows=8,
-                hint="建议至少配置 2 个 endpoints，避免某个仓库繁忙时无法合成。每个对象包含 name/base_url/studio_token/fn_index/trigger_id。",
-                example='[{"name":"pool-1","base_url":"https://xxx.ms.show","studio_token":"...","fn_index":3,"trigger_id":19}]',
+            # === 云端仓库池（可视化编辑）===
+            "endpoint_1_name": ConfigField(
+                type=str,
+                default="pool-1",
+                description="仓库池 1：名称（用于日志）",
+                group="仓库池 1",
+                order=110,
             ),
+            "endpoint_1_base_url": ConfigField(
+                type=str,
+                default="",
+                description="仓库池 1：Gradio 基地址（base_url）",
+                group="仓库池 1",
+                order=111,
+                placeholder="https://xxx.ms.show",
+            ),
+            "endpoint_1_studio_token": ConfigField(
+                type=str,
+                default="",
+                description="仓库池 1：studio_token",
+                group="仓库池 1",
+                order=112,
+                input_type="password",
+                hint="从浏览器抓包/控制台获取；不填写则该仓库池会被忽略。",
+            ),
+            "endpoint_1_fn_index": ConfigField(
+                type=int,
+                default=3,
+                description="仓库池 1：fn_index",
+                group="仓库池 1",
+                order=113,
+            ),
+            "endpoint_1_trigger_id": ConfigField(
+                type=int,
+                default=19,
+                description="仓库池 1：trigger_id",
+                group="仓库池 1",
+                order=114,
+            ),
+            "endpoint_2_name": ConfigField(type=str, default="pool-2", description="仓库池 2：名称（用于日志）", group="仓库池 2", order=120),
+            "endpoint_2_base_url": ConfigField(type=str, default="", description="仓库池 2：Gradio 基地址（base_url）", group="仓库池 2", order=121, placeholder="https://xxx.ms.show"),
+            "endpoint_2_studio_token": ConfigField(type=str, default="", description="仓库池 2：studio_token", group="仓库池 2", order=122, input_type="password"),
+            "endpoint_2_fn_index": ConfigField(type=int, default=3, description="仓库池 2：fn_index", group="仓库池 2", order=123),
+            "endpoint_2_trigger_id": ConfigField(type=int, default=19, description="仓库池 2：trigger_id", group="仓库池 2", order=124),
+            "endpoint_3_name": ConfigField(type=str, default="pool-3", description="仓库池 3：名称（用于日志）", group="仓库池 3", order=130),
+            "endpoint_3_base_url": ConfigField(type=str, default="", description="仓库池 3：Gradio 基地址（base_url）", group="仓库池 3", order=131, placeholder="https://xxx.ms.show"),
+            "endpoint_3_studio_token": ConfigField(type=str, default="", description="仓库池 3：studio_token", group="仓库池 3", order=132, input_type="password"),
+            "endpoint_3_fn_index": ConfigField(type=int, default=3, description="仓库池 3：fn_index", group="仓库池 3", order=133),
+            "endpoint_3_trigger_id": ConfigField(type=int, default=19, description="仓库池 3：trigger_id", group="仓库池 3", order=134),
+            "endpoint_4_name": ConfigField(type=str, default="pool-4", description="仓库池 4：名称（用于日志）", group="仓库池 4", order=140),
+            "endpoint_4_base_url": ConfigField(type=str, default="", description="仓库池 4：Gradio 基地址（base_url）", group="仓库池 4", order=141, placeholder="https://xxx.ms.show"),
+            "endpoint_4_studio_token": ConfigField(type=str, default="", description="仓库池 4：studio_token", group="仓库池 4", order=142, input_type="password"),
+            "endpoint_4_fn_index": ConfigField(type=int, default=3, description="仓库池 4：fn_index", group="仓库池 4", order=143),
+            "endpoint_4_trigger_id": ConfigField(type=int, default=19, description="仓库池 4：trigger_id", group="仓库池 4", order=144),
+            "endpoint_5_name": ConfigField(type=str, default="pool-5", description="仓库池 5：名称（用于日志）", group="仓库池 5", order=150),
+            "endpoint_5_base_url": ConfigField(type=str, default="", description="仓库池 5：Gradio 基地址（base_url）", group="仓库池 5", order=151, placeholder="https://xxx.ms.show"),
+            "endpoint_5_studio_token": ConfigField(type=str, default="", description="仓库池 5：studio_token", group="仓库池 5", order=152, input_type="password"),
+            "endpoint_5_fn_index": ConfigField(type=int, default=3, description="仓库池 5：fn_index", group="仓库池 5", order=153),
+            "endpoint_5_trigger_id": ConfigField(type=int, default=19, description="仓库池 5：trigger_id", group="仓库池 5", order=154),
         },
     }
 
@@ -850,6 +1072,8 @@ class EasyttsPuginPlugin(BasePlugin):
 
     def __init__(self, plugin_dir: str):
         super().__init__(plugin_dir=plugin_dir)
+        # 让 WebUI 可视化字段与旧版 list 配置互通，并确保后端能读到 endpoints/characters。
+        self._sync_visual_fields()
         # 启动时同步一次 Gradio 的“角色/预设”枚举，避免 LLM 选到不存在的 preset。
         try:
             self._maybe_refresh_gradio_schema_cache()
@@ -1020,6 +1244,11 @@ class EasyttsPuginPlugin(BasePlugin):
         easytts_cfg["characters"] = new_chars
 
         # 不维护任何“情绪->预设”映射：emotion 参数本身就是 preset。
+        # 同步回填到可视化槽位字段，方便在 WebUI 里直接看到最新 presets。
+        try:
+            self._sync_visual_fields()
+        except Exception:
+            pass
 
     def get_plugin_components(self) -> List[Tuple[ComponentInfo, Type]]:
         components: List[Tuple[ComponentInfo, Type]] = []

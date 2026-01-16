@@ -29,6 +29,24 @@ command_enabled = true # 是否启用 Command（手动命令：/eztts）
 default_character = "mika" # 默认角色（character）
 default_preset = "普通" # 默认预设（preset）
 
+# ========== 角色/预设（可视化编辑：固定 5 个槽位）==========
+# MaiBot WebUI 对 list[object] 的渲染会显示为 [object Object]，不便于编辑；
+# 因此用固定槽位字段来保证可视化表单可编辑。
+character_1_name = "mika" # 角色槽位 1：角色名（必须与云端 WebUI 的 character 下拉一致）
+character_1_presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"] # 角色槽位 1：预设列表（preset）
+
+character_2_name = "sagiri" # 角色槽位 2：角色名
+character_2_presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"]
+
+character_3_name = "character3" # 角色槽位 3：预留（留空则忽略）
+character_3_presets = ["普通"]
+
+character_4_name = "character4" # 角色槽位 4：预留（留空则忽略）
+character_4_presets = ["普通"]
+
+character_5_name = "character5" # 角色槽位 5：预留（留空则忽略）
+character_5_presets = ["普通"]
+
 # ========== 云端仓库池调度 ==========
 remote_split_sentence = true # 是否让远端也进行“分句合成”（Gradio 入参 split_sentence）
 prefer_idle_endpoint = true # 是否优先选择更空闲的仓库（依据 queue/status 的 queue_size）
@@ -42,64 +60,38 @@ download_timeout = 120 # 音频下载超时
 
 trust_env = false # aiohttp 是否继承系统代理（Windows 环境常见代理导致连接问题，建议 false）
 
-# ========== 模型/角色列表 & 情绪预设 ==========
-[[easytts.characters]]
-name = "mika" # 角色名（对应 WebUI 的 character 下拉值）
-presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"] # 该角色可用的预设列表（对应 WebUI 的 preset 下拉值）
-
-[[easytts.characters]]
-name = "sagiri" # 新角色示例：和泉纱雾（预设与 mika 一致，可按需修改为你的模型实际预设）
-presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"]
-
-[[easytts.characters]]
-name = "character3" # 预留槽位 3（请改成你自己的角色名）
-presets = ["普通"]
-
-[[easytts.characters]]
-name = "character4" # 预留槽位 4
-presets = ["普通"]
-
-[[easytts.characters]]
-name = "character5" # 预留槽位 5
-presets = ["普通"]
-
 # 按情绪回复说明：
 # - 本插件不做任何“情绪 -> 预设”映射；emotion 会被当作 preset 名使用
-# - 因此 emotion 必须是该角色实际存在的 preset（见 easytts.characters[*].presets）
+# - 因此 emotion 必须是该角色实际存在的 preset（见 character_X_presets）
 # - 如果不传 emotion / 或传入的 preset 不存在：会回退到 default_preset（通常是“普通”）
 
-# ========== 云端仓库池（按需填多个）==========
-[[easytts.endpoints]]
-name = "pool-1" # 仓库名（自定义，用于日志）
-base_url = "https://your-app.ms.show" # Gradio 基地址（例如 https://xxx.ms.show）
-studio_token = "填你的 studio_token" # 从浏览器抓包/控制台得到的 studio_token
-fn_index = 3 # 触发合成的 fn_index（不同部署可能不同）
-trigger_id = 19 # 触发合成的 trigger_id（不同部署可能不同）
+# ========== 云端仓库池（可视化编辑：固定 5 个槽位）==========
+endpoint_1_name = "pool-1" # 仓库池 1：名称（用于日志）
+endpoint_1_base_url = "https://your-app.ms.show" # 仓库池 1：Gradio 基地址
+endpoint_1_studio_token = "填你的 studio_token" # 仓库池 1：studio_token
+endpoint_1_fn_index = 3
+endpoint_1_trigger_id = 19
 
-[[easytts.endpoints]]
-name = "pool-2"
-base_url = "https://your-app-2.ms.show"
-studio_token = "填你的 studio_token"
-fn_index = 3
-trigger_id = 19
+endpoint_2_name = "pool-2"
+endpoint_2_base_url = "https://your-app-2.ms.show"
+endpoint_2_studio_token = "填你的 studio_token"
+endpoint_2_fn_index = 3
+endpoint_2_trigger_id = 19
 
-[[easytts.endpoints]]
-name = "pool-3"
-base_url = ""
-studio_token = ""
-fn_index = 3
-trigger_id = 19
+endpoint_3_name = "pool-3"
+endpoint_3_base_url = ""
+endpoint_3_studio_token = ""
+endpoint_3_fn_index = 3
+endpoint_3_trigger_id = 19
 
-[[easytts.endpoints]]
-name = "pool-4"
-base_url = ""
-studio_token = ""
-fn_index = 3
-trigger_id = 19
+endpoint_4_name = "pool-4"
+endpoint_4_base_url = ""
+endpoint_4_studio_token = ""
+endpoint_4_fn_index = 3
+endpoint_4_trigger_id = 19
 
-[[easytts.endpoints]]
-name = "pool-5"
-base_url = ""
-studio_token = ""
-fn_index = 3
-trigger_id = 19
+endpoint_5_name = "pool-5"
+endpoint_5_base_url = ""
+endpoint_5_studio_token = ""
+endpoint_5_fn_index = 3
+endpoint_5_trigger_id = 19
