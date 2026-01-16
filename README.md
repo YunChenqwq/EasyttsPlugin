@@ -1,4 +1,4 @@
-# EasyttsPugin（MaiBot 插件）
+# EasyPlugin（MaiBot 插件）
 
 基于 **GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）** 的 WebUI（ModelScope Studio / Gradio，ms.show 免费托管）实现语音合成，并提供 **云端仓库池自动切换** 与 **按情绪/预设生成语音** 的 MaiBot 插件。
 
@@ -22,11 +22,11 @@ https://space.bilibili.com/1883907316
 2) 把整个目录放到你的 MaiBot 插件目录，例如：
 
 ```
-E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyttsPugin\
+E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyPlugin\
 ```
 
 提示：
-- 目录名建议就叫 `EasyttsPugin`（与仓库名 `EasyttsPlugin` 不同属于正常情况）。
+- 推荐把插件目录命名为 `EasyPlugin`（之前旧版本叫 `EasyttsPugin`，是拼写错误；旧目录名仍可用，但建议改掉）。
 - 插件依赖在 `requirements.txt` 中，MaiBot 加载插件时通常会自动安装；如果没装上请手动 `pip install -r requirements.txt`。
 
 3) 重启 MaiBot（或在 WebUI 里重载插件）

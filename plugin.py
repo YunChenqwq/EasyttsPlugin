@@ -32,7 +32,7 @@ from .backends import TTSBackendRegistry, TTSResult
 from .config_keys import ConfigKeys, get_config_with_aliases
 from .utils.text import TTSTextUtils
 
-logger = get_logger("EasyttsPugin")
+logger = get_logger("EasyPlugin")
 
 VALID_BACKENDS = ["easytts"]
 
@@ -719,8 +719,9 @@ class EasyttsTestCommand(BaseCommand):
 
 @register_plugin
 class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
-    plugin_name = "EasyttsPugin"
-    plugin_description = "GPT-SoVITS 推理特化库 + 魔搭社区（ModelScope Studio）免费托管的语音合成插件（支持按情绪生成语音）"
+    # 保持类名不变（兼容旧代码/旧安装目录），但对外展示名称修正为 EasyPlugin
+    plugin_name = "EasyPlugin"
+    plugin_description = "GPT-SoVITS 推理特化库 + 魔搭社区（ModelScope Studio）免费托管的语音合成插件（支持按情绪/预设生成语音）"
     plugin_version = "0.1.0"
     plugin_author = "yunchenqwq"
     enable_plugin = True

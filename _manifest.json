@@ -1,6 +1,6 @@
 {
   "manifest_version": 1,
-  "name": "easytts 语音合成插件（云端仓库池）",
+  "name": "EasyPlugin 语音合成插件（云端仓库池）",
   "version": "0.1.0",
   "description": "基于 GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）与魔搭社区（ModelScope Studio）免费托管的语音合成插件，支持按情绪/预设生成语音（emotion 参数直接等同 preset，不做任何映射）以及云端仓库池自动切换。",
   "author": { "name": "yunchenqwq", "url": "https://github.com/YunChenqwq" },
@@ -41,5 +41,5 @@
     "config_template": "config.toml.example",
     "auto_generate": true
   },
-  "id": "yunchenqwq.easytts_pugin"
+  "id": "yunchenqwq.easy_plugin"
 }
