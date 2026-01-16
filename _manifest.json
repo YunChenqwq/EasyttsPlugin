@@ -5,7 +5,28 @@
   "description": "基于 GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）与魔搭社区（ModelScope Studio）免费托管的语音合成插件，支持按情绪/预设生成语音（emotion 参数直接等同 preset，不做任何映射）以及云端仓库池自动切换。",
   "author": { "name": "yunchenqwq", "url": "https://github.com/YunChenqwq" },
   "license": "AGPL-v3.0",
-  "repository_url": "https://github.com/YunChenqwq/easytts",
+  "host_application": {
+    "min_version": "0.11.0"
+  },
+  "homepage_url": "https://github.com/YunChenqwq/EasyttsPlugin",
+  "repository_url": "https://github.com/YunChenqwq/EasyttsPlugin",
+  "keywords": [
+    "tts",
+    "voice",
+    "gpt-sovits",
+    "genie-tts",
+    "gradio",
+    "modelscope",
+    "ms.show",
+    "napcat",
+    "emotion",
+    "preset"
+  ],
+  "categories": [
+    "Entertainment",
+    "Voice",
+    "TTS"
+  ],
   "default_locale": "zh-CN",
   "plugin_info": {
     "plugin_type": "general",
