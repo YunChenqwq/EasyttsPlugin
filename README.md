@@ -2,6 +2,9 @@
 
 基于 **GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）** 的 WebUI（ModelScope Studio / Gradio，ms.show 免费托管）实现语音合成，并提供 **云端仓库池自动切换** 与 **按情绪/预设生成语音** 的 MaiBot 插件。
 
+推荐先看使用教程视频（含安装/配置/演示）：  
+https://space.bilibili.com/1883907316
+
 ## 功能概览
 
 - 自动语音回复（Action，`LLM_JUDGE`）：由规划器/LLM 决定是否调用语音
@@ -34,28 +37,26 @@ E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyttsPugin\
 
 配置文件：`EasyttsPugin/config.toml`
 
-重要提示：
-- 不建议在 bot 自带 WebUI 里直接编辑 TOML（WebUI 不显示注释，容易误改导致解析失败）。
-- 推荐直接用编辑器打开文件修改，然后重启/重载插件。
+推荐方式（更省事）：在 MaiBot WebUI 里可视化编辑配置（本插件已做成表单，不需要写 JSON）。
 
-### 2.1 云端仓库池（必填）
+你也可以直接编辑 `config.toml`（高级用法），但注意：WebUI 保存配置时可能会重排格式/移除 TOML 注释，这属于 WebUI 的正常行为。
 
-在 `[[easytts.endpoints]]` 填多个仓库（建议至少 2 个，方便繁忙时自动切换）：
+### 2.1 云端仓库池（必填，推荐用 WebUI 填）
+
+仓库池是“固定 5 个槽位”的表单字段（建议至少填 2 个，方便繁忙时自动切换）：
 
 ```toml
-[[easytts.endpoints]]
-name = "pool-1"
-base_url = "https://xxx.ms.show"
-studio_token = "你的studio_token"
-fn_index = 3
-trigger_id = 19
+endpoint_1_name = "pool-1"
+endpoint_1_base_url = "https://xxx.ms.show"
+endpoint_1_studio_token = "你的studio_token"
+endpoint_1_fn_index = 3
+endpoint_1_trigger_id = 19
 
-[[easytts.endpoints]]
-name = "pool-2"
-base_url = "https://yyy.ms.show"
-studio_token = "你的studio_token"
-fn_index = 3
-trigger_id = 19
+endpoint_2_name = "pool-2"
+endpoint_2_base_url = "https://yyy.ms.show"
+endpoint_2_studio_token = "你的studio_token"
+endpoint_2_fn_index = 3
+endpoint_2_trigger_id = 19
 ```
 
 如何获取 `studio_token`（二选一即可）：
@@ -65,14 +66,13 @@ trigger_id = 19
 `fn_index` / `trigger_id`：
 - 通常可以在 `queue/join` 的请求体里看到（或由你的 WebUI 版本决定）。
 
-### 2.2 角色与预设（characters / presets）
+### 2.2 角色与预设（情绪/预设列表，推荐用 WebUI 填）
 
-`[[easytts.characters]]` 用来声明“每个角色有哪些 preset（情绪/风格）”。示例：
+角色/预设同样是“固定 5 个槽位”的表单字段。示例：
 
 ```toml
-[[easytts.characters]]
-name = "mika"
-presets = ["普通", "开心", "伤心"]
+character_1_name = "mika"
+character_1_presets = "普通,开心,伤心"
 ```
 
 规则（很重要）：
