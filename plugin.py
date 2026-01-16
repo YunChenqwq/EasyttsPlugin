@@ -718,7 +718,7 @@ class EasyttsTestCommand(BaseCommand):
 
 
 @register_plugin
-class EasyttsPuginPlugin(BasePlugin):
+class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
     plugin_name = "EasyttsPugin"
     plugin_description = "GPT-SoVITS 推理特化库 + 魔搭社区（ModelScope Studio）免费托管的语音合成插件（支持按情绪生成语音）"
     plugin_version = "0.1.0"
