@@ -4,3 +4,4 @@
 *.pyd
 .venv/
 .env
+logs/

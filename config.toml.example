@@ -51,6 +51,18 @@ presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶",
 name = "sagiri" # 新角色示例：和泉纱雾（预设与 mika 一致，可按需修改为你的模型实际预设）
 presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"]
 
+[[easytts.characters]]
+name = "character3" # 预留槽位 3（请改成你自己的角色名）
+presets = ["普通"]
+
+[[easytts.characters]]
+name = "character4" # 预留槽位 4
+presets = ["普通"]
+
+[[easytts.characters]]
+name = "character5" # 预留槽位 5
+presets = ["普通"]
+
 # 按情绪回复说明：
 # - 本插件不做任何“情绪 -> 预设”映射；emotion 会被当作 preset 名使用
 # - 因此 emotion 必须是该角色实际存在的 preset（见 easytts.characters[*].presets）
@@ -68,5 +80,26 @@ trigger_id = 19 # 触发合成的 trigger_id（不同部署可能不同）
 name = "pool-2"
 base_url = "https://your-app-2.ms.show"
 studio_token = "填你的 studio_token"
+fn_index = 3
+trigger_id = 19
+
+[[easytts.endpoints]]
+name = "pool-3"
+base_url = ""
+studio_token = ""
+fn_index = 3
+trigger_id = 19
+
+[[easytts.endpoints]]
+name = "pool-4"
+base_url = ""
+studio_token = ""
+fn_index = 3
+trigger_id = 19
+
+[[easytts.endpoints]]
+name = "pool-5"
+base_url = ""
+studio_token = ""
 fn_index = 3
 trigger_id = 19

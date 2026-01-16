@@ -59,9 +59,49 @@ name = "sagiri" # 新角色示例：和泉纱雾（预设与 mika 一致，可�
 # 推荐：开启 easytts.auto_fetch_gradio_schema=true，让插件启动时自动从 Gradio 抓取最新角色/预设枚举并覆盖这里的 presets。
 presets = ["普通", "开心", "伤心", "生气", "疑问", "惊讶", "百感交集的释然"]
 
+[[easytts.characters]]
+name = "character3" # 预留槽位 3（请改成你自己的角色名）
+presets = ["普通"]
+
+[[easytts.characters]]
+name = "character4" # 预留槽位 4
+presets = ["普通"]
+
+[[easytts.characters]]
+name = "character5" # 预留槽位 5
+presets = ["普通"]
+
 [[easytts.endpoints]]
 name = "default" # 仓库名（自定义，用于日志）
 base_url = "https://yunchenqwq-easytts.ms.show" # Gradio 基地址（例如 https://xxx.ms.show）
 studio_token = "8d818e3b-58c6-4707-96d9-b3e64af312f4" # studio_token（必填）
 fn_index = 3 # 触发合成的 fn_index（不同部署可能不同）
 trigger_id = 19 # 触发合成的 trigger_id（不同部署可能不同）
+
+[[easytts.endpoints]]
+name = "pool-2"
+base_url = ""
+studio_token = ""
+fn_index = 3
+trigger_id = 19
+
+[[easytts.endpoints]]
+name = "pool-3"
+base_url = ""
+studio_token = ""
+fn_index = 3
+trigger_id = 19
+
+[[easytts.endpoints]]
+name = "pool-4"
+base_url = ""
+studio_token = ""
+fn_index = 3
+trigger_id = 19
+
+[[easytts.endpoints]]
+name = "pool-5"
+base_url = ""
+studio_token = ""
+fn_index = 3
+trigger_id = 19

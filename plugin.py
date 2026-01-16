@@ -807,6 +807,9 @@ class EasyttsPuginPlugin(BasePlugin):
                         "name": "sagiri",
                         "presets": ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
                     },
+                    {"name": "character3", "presets": ["普通"]},
+                    {"name": "character4", "presets": ["普通"]},
+                    {"name": "character5", "presets": ["普通"]},
                 ],
                 description="角色模型列表（用于约束 LLM 只使用该角色真实存在的 preset）",
                 # MaiBot 目前的 ConfigField 不支持 item_type/item_fields 这类“列表元素 Schema”定义；
@@ -826,7 +829,13 @@ class EasyttsPuginPlugin(BasePlugin):
             "trust_env": ConfigField(type=bool, default=False, description="aiohttp 是否继承系统代理"),
             "endpoints": ConfigField(
                 type=list,
-                default=[{"name": "default", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19}],
+                default=[
+                    {"name": "pool-1", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
+                    {"name": "pool-2", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
+                    {"name": "pool-3", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
+                    {"name": "pool-4", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
+                    {"name": "pool-5", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19},
+                ],
                 description="云端仓库池（多个 endpoints 自动切换）",
                 input_type="json",
                 rows=8,
