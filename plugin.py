@@ -25,7 +25,7 @@ from src.plugin_system.apis.plugin_register_api import register_plugin
 from src.plugin_system.base.base_action import BaseAction, ActionActivationType
 from src.plugin_system.base.base_command import BaseCommand
 from src.plugin_system.base.component_types import ComponentInfo, ChatMode
-from src.plugin_system.base.config_types import ConfigField
+from src.plugin_system.base.config_types import ConfigField, ConfigSection
 from src.plugin_system.apis import generator_api
 
 from .backends import TTSBackendRegistry, TTSResult
@@ -605,20 +605,35 @@ class EasyttsPuginPlugin(BasePlugin):
     python_dependencies = ["aiohttp"]
 
     config_section_descriptions = {
-        "plugin": {
-            "title": "插件基本配置",
-            "description": "提示：请不要在bot自己的webui中编辑配置文件，请打开文件编辑（WebUI 不会显示 TOML 注释，容易改错）。",
-            "order": -100,
-        },
-        "general": "通用设置",
-        "components": "组件启用控制",
-        "easytts": "EasyTTS（ModelScope Studio / Gradio）与云端仓库池",
+        "plugin": ConfigSection(
+            title="插件基本配置",
+            description=(
+                "提示：更推荐用编辑器直接编辑 config.toml。\n"
+                "（WebUI 虽然能显示 schema 的提示，但不一定能完整呈现 TOML 的注释/结构，容易误改。）"
+            ),
+            icon="settings",
+            order=-100,
+        ),
+        "general": ConfigSection(title="通用设置", icon="settings", order=0),
+        "components": ConfigSection(title="组件启用控制", icon="toggle-left", order=1),
+        "easytts": ConfigSection(title="EasyTTS（ModelScope Studio / Gradio）与云端仓库池", icon="cloud", order=2),
     }
 
     config_schema = {
         "plugin": {
-            "enabled": ConfigField(type=bool, default=True, description="是否启用插件"),
-            "config_version": ConfigField(type=str, default="0.1.0", description="配置版本"),
+            "enabled": ConfigField(
+                type=bool,
+                default=True,
+                description="是否启用插件",
+                hint="关闭后将不会注册 action/command。",
+            ),
+            "config_version": ConfigField(
+                type=str,
+                default="0.1.0",
+                description="配置版本",
+                disabled=True,
+                hint="请勿修改（用于区分配置结构版本）。",
+            ),
             "tips": ConfigField(
                 type=str,
                 default="请不要在bot自己的webui中编辑配置文件，请打开文件编辑。",
@@ -638,63 +653,148 @@ class EasyttsPuginPlugin(BasePlugin):
                 description=(
                     "TTS 模式：free=自由模式（交给 LLM 决定是否用语音）；fixed=固定模式（逐句翻译并逐句发送语音）。"
                 ),
+                hint=(
+                    "free：Planner/LLM 按需调用 unified_tts_action（一个消息一个语音）。\n"
+                    "fixed：一旦触发，会按句拆分并逐句发送语音（更“密集”）。"
+                ),
+                example="free",
             ),
-            "default_backend": ConfigField(type=str, default="easytts", description="默认后端（仅 easytts）"),
-            "timeout": ConfigField(type=int, default=60, description="请求超时（秒）"),
-            "max_text_length": ConfigField(type=int, default=120, description="最大文本长度（超出则降级为文字；语音建议更短）"),
+            "default_backend": ConfigField(
+                type=str,
+                default="easytts",
+                description="默认后端（仅 easytts）",
+                disabled=True,
+                hint="本插件只保留 easytts 后端（云端仓库池）。",
+            ),
+            "timeout": ConfigField(
+                type=int,
+                default=60,
+                description="请求超时（秒）",
+                min=1,
+                max=600,
+                hint="Action/Command 整体超时。",
+            ),
+            "max_text_length": ConfigField(
+                type=int,
+                default=120,
+                description="最大文本长度（超出则降级为文字；语音建议更短）",
+                min=1,
+                max=500,
+                hint="建议控制在较短的 1~2 句，语音更自然也更稳定。",
+            ),
             "use_replyer_rewrite": ConfigField(
                 type=bool,
                 default=False,
                 description="是否使用 replyer/LLM 二次生成语音文案（默认关闭：由 Planner/LLM 直接提供 text）",
+                hint="建议关闭：避免出现“文本/语音不一致”。",
             ),
-            "audio_output_dir": ConfigField(type=str, default="", description="音频输出目录（留空使用项目根目录）"),
-            "use_base64_audio": ConfigField(type=bool, default=False, description="是否使用 base64 方式发送音频（关闭则使用本地文件路径发送）"),
-            "split_sentences": ConfigField(type=bool, default=False, description="是否逐句发送多条语音（建议关闭：一个消息一个语音）"),
-            "split_delay": ConfigField(type=float, default=0.0, description="逐句发送间隔（秒）"),
-            "send_error_messages": ConfigField(type=bool, default=True, description="失败时是否发送错误提示"),
+            "audio_output_dir": ConfigField(
+                type=str,
+                default="",
+                description="音频输出目录（留空使用项目根目录）",
+                hint="use_base64_audio=false 时会落盘生成 wav 文件，并通过本地路径发送。",
+            ),
+            "use_base64_audio": ConfigField(
+                type=bool,
+                default=False,
+                description="是否使用 base64 方式发送音频（关闭则使用本地文件路径发送）",
+                hint="部分环境不支持本地路径 record，可开启此项。",
+            ),
+            "split_sentences": ConfigField(
+                type=bool,
+                default=False,
+                description="是否逐句发送多条语音（建议关闭：一个消息一个语音）",
+                hint="free 模式建议关闭；fixed 模式内部会逐句发送。",
+            ),
+            "split_delay": ConfigField(
+                type=float,
+                default=0.0,
+                description="逐句发送间隔（秒）",
+                min=0.0,
+                max=10.0,
+                step=0.1,
+            ),
+            "send_error_messages": ConfigField(
+                type=bool,
+                default=True,
+                description="失败时是否发送错误提示",
+            ),
             "send_text_along_with_voice": ConfigField(
                 type=bool,
                 default=True,
                 description="使用 unified_tts_action 时，是否先发送文字再发送语音（推荐开启：避免文本/语音不一致）",
+                hint="推荐开启：保证用户看到的文字和语音内容一致（语音可由插件内部翻译）。",
             ),
             "voice_translate_to": ConfigField(
                 type=str,
                 default="ja",
                 description="语音合成前是否把文字翻译到指定语言（默认 ja=日语；留空/none/off 表示不翻译，直接用原文合成）",
+                hint="默认 ja：把 text 翻译成日语后再合成语音；留空/off：直接用原文合成。",
+                example="ja",
             ),
             "force_text_language": ConfigField(
                 type=str,
                 default="zh",
                 choices=["zh", ""],
                 description="强制“发出去的文字”语言：zh=始终发中文（避免把日语译文直接发出去）；留空=不强制",
+                hint="建议 zh：避免 LLM 把日语译文发到聊天里。",
+                example="zh",
             ),
             "fixed_mode_infer_emotion": ConfigField(
                 type=bool,
                 default=True,
                 description="固定模式下是否逐句调用 LLM 选择 preset（只从该角色已有 presets 中选）",
+                hint="固定模式建议开启：让每句话都能选择更合适的预设（emotion=预设名，不做映射）。",
             ),
         },
         "components": {
-            "action_enabled": ConfigField(type=bool, default=True, description="是否启用 Action（自动触发）"),
-            "command_enabled": ConfigField(type=bool, default=True, description="是否启用 Command（手动命令）"),
+            "action_enabled": ConfigField(
+                type=bool,
+                default=True,
+                description="是否启用 Action（自动触发）",
+                hint="开启后：Planner/LLM 可选择 unified_tts_action 来自动语音回复。",
+            ),
+            "command_enabled": ConfigField(
+                type=bool,
+                default=True,
+                description="是否启用 Command（手动命令）",
+                hint="开启后：支持 /eztts 与 /test。",
+            ),
         },
         "easytts": {
-            "default_character": ConfigField(type=str, default="mika", description="默认角色（character）"),
-            "default_preset": ConfigField(type=str, default="普通", description="默认预设（preset）"),
+            "default_character": ConfigField(
+                type=str,
+                default="mika",
+                description="默认角色（character）",
+                hint="voice 未指定角色时使用。",
+                example="mika",
+            ),
+            "default_preset": ConfigField(
+                type=str,
+                default="普通",
+                description="默认预设（preset）",
+                hint="emotion 未提供/不合法时回退到该预设。",
+                example="普通",
+            ),
             "auto_fetch_gradio_schema": ConfigField(
                 type=bool,
                 default=True,
                 description="插件启动时自动从 Gradio /gradio_api/info 抓取角色与预设列表（用于约束 LLM 只使用真实存在的 preset）",
+                hint="推荐开启：可自动同步云端 WebUI 的下拉选项（character/preset）。",
             ),
             "schema_cache_ttl": ConfigField(
                 type=int,
                 default=86400,
                 description="Gradio schema 缓存有效期（秒），到期后会重新抓取（0 表示每次启动都抓取）",
+                min=0,
+                max=604800,
+                hint="0=每次启动都抓取；默认 86400=1 天。",
             ),
             "schema_cache_file": ConfigField(
                 type=str,
                 default="_gradio_schema_cache.json",
                 description="schema 缓存文件名（相对插件目录；留空则不落盘缓存）",
+                hint="删除该文件可强制重新抓取。",
             ),
             "characters": ConfigField(
                 type=list,
@@ -708,11 +808,21 @@ class EasyttsPuginPlugin(BasePlugin):
                         "presets": ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
                     },
                 ],
-                description=(
-                    "角色模型列表（可选，用于提示/校验）。\n"
-                    "格式示例：[{\"name\":\"mika\",\"presets\":[\"普通\",\"开心\"]}]"
-                ),
-                input_type="json",
+                description="角色模型列表（用于约束 LLM 只使用该角色真实存在的 preset）",
+                item_type="object",
+                item_fields={
+                    "name": {"type": "string", "label": "角色名", "placeholder": "mika"},
+                    "presets": {
+                        "type": "list",
+                        "label": "预设列表（preset）",
+                        "item_type": "string",
+                        "placeholder": "普通",
+                        "hint": "这里的值必须和云端 WebUI 的 preset 下拉一致；emotion 参数将直接使用这些 preset 名（不做映射）。",
+                    },
+                },
+                min_items=1,
+                example='[{"name":"mika","presets":["普通","开心"]}]',
+                hint="推荐开启 auto_fetch_gradio_schema 自动抓取；这里也可手工维护。",
             ),
             "remote_split_sentence": ConfigField(type=bool, default=True, description="是否让远端也进行分句合成"),
             "prefer_idle_endpoint": ConfigField(type=bool, default=True, description="优先选择空闲仓库（queue_size 低）"),
@@ -725,11 +835,23 @@ class EasyttsPuginPlugin(BasePlugin):
             "endpoints": ConfigField(
                 type=list,
                 default=[{"name": "default", "base_url": "", "studio_token": "", "fn_index": 3, "trigger_id": 19}],
-                description=(
-                    "云端仓库池（多个 endpoints 自动切换）。\n"
-                    "格式示例：[{\"name\":\"pool-1\",\"base_url\":\"https://xxx.ms.show\",\"studio_token\":\"...\",\"fn_index\":3,\"trigger_id\":19}]"
-                ),
-                input_type="json",
+                description="云端仓库池（多个 endpoints 自动切换）",
+                item_type="object",
+                item_fields={
+                    "name": {"type": "string", "label": "名称", "placeholder": "pool-1"},
+                    "base_url": {"type": "string", "label": "Gradio 基地址", "placeholder": "https://xxx.ms.show"},
+                    "studio_token": {
+                        "type": "string",
+                        "label": "studio_token",
+                        "input_type": "password",
+                        "placeholder": "从浏览器抓包获得",
+                    },
+                    "fn_index": {"type": "number", "label": "fn_index", "default": 3},
+                    "trigger_id": {"type": "number", "label": "trigger_id", "default": 19},
+                },
+                min_items=1,
+                hint="建议至少配置 2 个 endpoints，避免某个仓库繁忙时无法合成。",
+                example='[{"name":"pool-1","base_url":"https://xxx.ms.show","studio_token":"...","fn_index":3,"trigger_id":19}]',
             ),
         },
     }
