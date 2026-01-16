@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from src.common.logger import get_logger
 
-from config_keys import ConfigKeys
+from ..config_keys import ConfigKeys
 
 logger = get_logger("easytts_backend")
 
@@ -46,22 +46,22 @@ class TTSBackendBase(ABC):
         prefix: str = "tts",
         voice_info: str = "",
     ) -> TTSResult:
-        from utils.file import TTSFileManager
-
-        use_base64 = self.get_config(ConfigKeys.GENERAL_USE_BASE64_AUDIO, True)
+        from ..utils.file import TTSFileManager
 
         if not audio_data:
-            return TTSResult(False, "音频为空", backend_name=self.backend_name)
+            return TTSResult(False, "音频数据为空", backend_name=self.backend_name)
+        if not self._send_custom:
+            return TTSResult(False, "send_custom 未设置", backend_name=self.backend_name)
 
+        use_base64 = bool(self.get_config(ConfigKeys.GENERAL_USE_BASE64_AUDIO, True))
         if use_base64:
+            # MaiBot 的消息处理链路里，语音类型是 "voice"，并且 data 预期是 base64 字符串。
             base64_audio = TTSFileManager.audio_to_base64(audio_data)
             if not base64_audio:
                 return TTSResult(False, "音频转 base64 失败", backend_name=self.backend_name)
-            if not self._send_custom:
-                return TTSResult(False, "send_custom 未设置", backend_name=self.backend_name)
             ok = await self._send_custom(message_type="voice", content=base64_audio)
             if not ok:
-                return TTSResult(False, "发送语音失败（base64）", backend_name=self.backend_name)
+                return TTSResult(False, "发送语音失败（voice/base64）", backend_name=self.backend_name)
             return TTSResult(
                 True,
                 f"已发送 {self.backend_name} 语音{(' ('+voice_info+')') if voice_info else ''}（base64）",
@@ -72,12 +72,11 @@ class TTSBackendBase(ABC):
         audio_path = TTSFileManager.generate_temp_path(prefix=prefix, suffix=f".{audio_format}", output_dir=output_dir)
         if not await TTSFileManager.write_audio_async(audio_path, audio_data):
             return TTSResult(False, "保存音频文件失败", backend_name=self.backend_name)
-        if not self._send_custom:
-            return TTSResult(False, "send_custom 未设置", backend_name=self.backend_name)
+        # 用本地文件路径发送（由 MaiBot-Napcat-Adapter 转成 OneBot11 record(file=...)）。
         ok = await self._send_custom(message_type="voiceurl", content=audio_path)
         if not ok:
-            return TTSResult(False, "发送语音失败（voiceurl）", backend_name=self.backend_name)
-        asyncio.create_task(TTSFileManager.cleanup_file_async(audio_path, delay=30))
+            return TTSResult(False, "发送语音失败（voiceurl/file）", backend_name=self.backend_name)
+        asyncio.create_task(TTSFileManager.cleanup_file_async(audio_path, delay=60))
         return TTSResult(
             True,
             f"已发送 {self.backend_name} 语音{(' ('+voice_info+')') if voice_info else ''}",
@@ -115,4 +114,3 @@ class TTSBackendRegistry:
         if not backend_class:
             return None
         return backend_class(config_getter, log_prefix)
-

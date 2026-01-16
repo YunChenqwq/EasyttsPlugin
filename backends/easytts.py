@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.common.logger import get_logger
 
-from config_keys import ConfigKeys
-from utils.file import TTSFileManager
-from utils.session import TTSSessionManager
+from ..config_keys import ConfigKeys
+from ..utils.file import TTSFileManager
+from ..utils.session import TTSSessionManager
 from .base import TTSBackendBase, TTSResult
 
 logger = get_logger("easytts_backend.easytts")
@@ -45,10 +45,10 @@ class EasyTTSBackend(TTSBackendBase):
     def validate_config(self) -> Tuple[bool, str]:
         endpoints = self._load_endpoints()
         if not endpoints:
-            return False, "easytts.endpoints 为空，请至少配置一个云端仓库"
+            return False, "easytts.云端仓库池 为空，请至少配置一个云端仓库"
         for ep in endpoints:
             if not ep.base_url or not ep.studio_token:
-                return False, "easytts.endpoints 中 base_url / studio_token 不能为空"
+                return False, "easytts.云端仓库池 中 基地址/令牌 不能为空"
         return True, ""
 
     def _load_endpoints(self) -> List[EasyTTSEndpoint]:
@@ -57,11 +57,13 @@ class EasyTTSBackend(TTSBackendBase):
         for idx, item in enumerate(raw):
             if not isinstance(item, dict):
                 continue
-            base_url = str(item.get("base_url", "")).rstrip("/")
-            studio_token = str(item.get("studio_token", "")).strip()
-            name = str(item.get("name", f"endpoint-{idx}")).strip() or f"endpoint-{idx}"
-            fn_index = int(item.get("fn_index", 3) or 3)
-            trigger_id = int(item.get("trigger_id", 19) or 19)
+
+            # 新版中文 key（推荐）+ 旧版英文 key（兼容）
+            base_url = str(item.get("基地址", item.get("base_url", ""))).rstrip("/")
+            studio_token = str(item.get("令牌", item.get("studio_token", ""))).strip()
+            name = str(item.get("名称", item.get("name", f"endpoint-{idx}"))).strip() or f"endpoint-{idx}"
+            fn_index = int(item.get("函数索引", item.get("fn_index", 3)) or 3)
+            trigger_id = int(item.get("触发ID", item.get("trigger_id", 19)) or 19)
             if base_url:
                 endpoints.append(
                     EasyTTSEndpoint(
@@ -140,58 +142,42 @@ class EasyTTSBackend(TTSBackendBase):
         # voice 只给了 character，没有给 preset：视为未显式指定 preset，允许 emotion 覆盖
         return raw, default_preset, f"{raw}:{default_preset}", False
 
-    def _load_emotion_map(self) -> Dict[str, str]:
-        raw = self.get_config(ConfigKeys.EASYTTS_EMOTION_PRESET_MAP, {}) or {}
-        if isinstance(raw, dict):
-            return {str(k).strip(): str(v).strip() for k, v in raw.items() if str(k).strip() and str(v).strip()}
-        # 兼容 list[{"emotion": "...", "preset": "..."}]
-        if isinstance(raw, list):
-            out: Dict[str, str] = {}
-            for item in raw:
-                if not isinstance(item, dict):
-                    continue
-                k = str(item.get("emotion", "")).strip()
-                v = str(item.get("preset", "")).strip()
-                if k and v:
-                    out[k] = v
-            return out
-        return {}
-
-    def _load_character_emotion_map(self, character: str) -> Dict[str, str]:
+    def _load_character_presets(self, character: str) -> List[str]:
+        """
+        读取 easytts.characters 中该角色支持的 preset 列表。
+        注意：preset 必须是云端 WebUI 里真实存在的下拉值，否则会触发 Gradio 报错。
+        """
         chars = self.get_config(ConfigKeys.EASYTTS_CHARACTERS, []) or []
         if not isinstance(chars, list):
-            return {}
+            return []
         for item in chars:
             if not isinstance(item, dict):
                 continue
-            if str(item.get("name", "")).strip() != character:
+            name = str(item.get("角色名", item.get("name", ""))).strip()
+            if name != character:
                 continue
-            raw = item.get("emotion_preset_map") or {}
-            if isinstance(raw, dict):
-                return {str(k).strip(): str(v).strip() for k, v in raw.items() if str(k).strip() and str(v).strip()}
-        return {}
+            raw = item.get("预设列表", item.get("presets", []))
+            if isinstance(raw, list):
+                return [str(x).strip() for x in raw if str(x).strip()]
+        return []
 
     def _resolve_preset_by_emotion(self, *, character: str, preset: str, emotion: str, explicit_preset: bool) -> str:
+        """
+        不做任何“情绪->预设”映射：
+        - 如果 emotion 传入的值本身就是该角色支持的 preset，则直接使用；
+        - 否则回退 default_preset（即 preset 参数）。
+
+        这样 LLM/用户只需要使用“云端 WebUI 下拉里真实存在的 preset 名称”，不会产生映射理解成本。
+        """
         emo = (emotion or "").strip()
         if not emo or explicit_preset:
             return preset
 
-        # 角色级映射优先
-        char_map = self._load_character_emotion_map(character)
-        if emo in char_map:
-            return char_map[emo]
+        allowed_presets = self._load_character_presets(character)
+        if allowed_presets and emo in set(allowed_presets):
+            return emo
 
-        # 全局映射
-        global_map = self._load_emotion_map()
-        if emo in global_map:
-            return global_map[emo]
-
-        # 常见同义：把 “难过/悲伤” 映射到 “伤心” 等（仅在用户没配置时兜底）
-        if "伤心" in global_map and emo in ("难过", "悲伤"):
-            return global_map["伤心"]
-        if "开心" in global_map and emo in ("高兴", "兴奋"):
-            return global_map["开心"]
-
+        # 仅回退，不做同义词/映射
         return preset
 
     def _pick_output_audio(self, out: List[Any]) -> Any:
@@ -335,14 +321,25 @@ class EasyTTSBackend(TTSBackendBase):
         if not ok:
             return TTSResult(False, err, backend_name=self.backend_name)
 
+        # 注意：emotion 在本插件中“等同于 preset”（不再做任何映射）。
         emotion = str(kwargs.get("emotion", "") or "").strip()
         character, preset, voice_info, explicit_preset = self._parse_voice(voice)
+        available_presets = self._load_character_presets(character)
+        logger.info(
+            f"{self.log_prefix} synth request character={character}, explicit_preset={explicit_preset}, "
+            f"emotion(preset)={emotion or '-'}, default_preset={preset}, available_presets={available_presets}"
+        )
         preset = self._resolve_preset_by_emotion(
             character=character,
             preset=preset,
             emotion=emotion,
             explicit_preset=explicit_preset,
         )
+        if emotion and not explicit_preset and available_presets and (emotion not in set(available_presets)):
+            logger.warning(
+                f"{self.log_prefix} preset not in available presets, fallback to default. "
+                f"character={character}, requested={emotion}, resolved={preset}, available={available_presets}"
+            )
         voice_info = f"{character}:{preset}"
         remote_split = bool(self.get_config(ConfigKeys.EASYTTS_REMOTE_SPLIT_SENTENCE, True))
 
