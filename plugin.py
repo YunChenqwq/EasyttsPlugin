@@ -57,6 +57,13 @@ class TTSExecutorMixin:
             presets: List[str] = []
             if isinstance(raw_presets, list):
                 presets = [str(x).strip() for x in raw_presets if str(x).strip()]
+            elif isinstance(raw_presets, str):
+                # 支持用户在 WebUI 里用“逗号/换行”填写：普通,开心,伤心
+                s = raw_presets.replace("，", ",").replace("；", ",")
+                parts: List[str] = []
+                for line in s.splitlines():
+                    parts.extend(line.split(","))
+                presets = [p.strip() for p in parts if p.strip()]
             if name:
                 out.append({"name": name, "presets": presets})
         return out
@@ -134,7 +141,8 @@ class TTSExecutorMixin:
                     break
                 easytts_cfg.setdefault(f"character_{idx}_name", name)
                 if f"character_{idx}_presets" not in easytts_cfg:
-                    easytts_cfg[f"character_{idx}_presets"] = presets or ["普通"]
+                    # 槽位字段在 WebUI 中用字符串展示，避免 list 输入导致用户看到 [object Object]
+                    easytts_cfg[f"character_{idx}_presets"] = ",".join(presets) if presets else "普通"
 
         eps = easytts_cfg.get("endpoints")
         if isinstance(eps, list) and eps:
@@ -924,13 +932,15 @@ class EasyttsPuginPlugin(BasePlugin):
                 hint="必须与云端 WebUI 的 character 下拉一致。",
             ),
             "character_1_presets": ConfigField(
-                type=list,
-                default=["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
-                description="角色槽位 1：预设列表（preset）",
+                type=str,
+                default="普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然",
+                description="角色槽位 1：情绪有哪些（preset 列表）",
                 group="角色槽位 1",
                 order=11,
-                input_type="json",
-                hint="这里的值必须与云端 WebUI 的 preset 下拉一致；emotion 参数会直接使用 preset 名（不做映射）。",
+                input_type="textarea",
+                rows=2,
+                placeholder="普通,开心,伤心 ...（用逗号或换行分隔）",
+                hint="用逗号/换行分隔。值必须与云端 WebUI 的 preset 下拉一致；emotion 参数会直接使用 preset 名（不做映射）。",
             ),
             "character_2_name": ConfigField(
                 type=str,
@@ -941,13 +951,15 @@ class EasyttsPuginPlugin(BasePlugin):
                 hint="必须与云端 WebUI 的 character 下拉一致。",
             ),
             "character_2_presets": ConfigField(
-                type=list,
-                default=["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"],
-                description="角色槽位 2：预设列表（preset）",
+                type=str,
+                default="普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然",
+                description="角色槽位 2：情绪有哪些（preset 列表）",
                 group="角色槽位 2",
                 order=21,
-                input_type="json",
-                hint="这里的值必须与云端 WebUI 的 preset 下拉一致；emotion 参数会直接使用 preset 名（不做映射）。",
+                input_type="textarea",
+                rows=2,
+                placeholder="普通,开心,伤心 ...（用逗号或换行分隔）",
+                hint="用逗号/换行分隔。值必须与云端 WebUI 的 preset 下拉一致；emotion 参数会直接使用 preset 名（不做映射）。",
             ),
             "character_3_name": ConfigField(
                 type=str,
@@ -958,12 +970,14 @@ class EasyttsPuginPlugin(BasePlugin):
                 hint="把 character3 改成你自己的角色名；留空则忽略该槽位。",
             ),
             "character_3_presets": ConfigField(
-                type=list,
-                default=["普通"],
-                description="角色槽位 3：预设列表（preset）",
+                type=str,
+                default="普通",
+                description="角色槽位 3：情绪有哪些（preset 列表）",
                 group="角色槽位 3",
                 order=31,
-                input_type="json",
+                input_type="textarea",
+                rows=2,
+                placeholder="普通,开心 ...（用逗号或换行分隔）",
             ),
             "character_4_name": ConfigField(
                 type=str,
@@ -974,12 +988,14 @@ class EasyttsPuginPlugin(BasePlugin):
                 hint="把 character4 改成你自己的角色名；留空则忽略该槽位。",
             ),
             "character_4_presets": ConfigField(
-                type=list,
-                default=["普通"],
-                description="角色槽位 4：预设列表（preset）",
+                type=str,
+                default="普通",
+                description="角色槽位 4：情绪有哪些（preset 列表）",
                 group="角色槽位 4",
                 order=41,
-                input_type="json",
+                input_type="textarea",
+                rows=2,
+                placeholder="普通,开心 ...（用逗号或换行分隔）",
             ),
             "character_5_name": ConfigField(
                 type=str,
@@ -990,12 +1006,14 @@ class EasyttsPuginPlugin(BasePlugin):
                 hint="把 character5 改成你自己的角色名；留空则忽略该槽位。",
             ),
             "character_5_presets": ConfigField(
-                type=list,
-                default=["普通"],
-                description="角色槽位 5：预设列表（preset）",
+                type=str,
+                default="普通",
+                description="角色槽位 5：情绪有哪些（preset 列表）",
                 group="角色槽位 5",
                 order=51,
-                input_type="json",
+                input_type="textarea",
+                rows=2,
+                placeholder="普通,开心 ...（用逗号或换行分隔）",
             ),
             "remote_split_sentence": ConfigField(type=bool, default=True, description="是否让远端也进行分句合成"),
             "prefer_idle_endpoint": ConfigField(type=bool, default=True, description="优先选择空闲仓库（queue_size 低）"),

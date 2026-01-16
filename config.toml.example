@@ -33,19 +33,19 @@ default_preset = "普通" # 默认预设（preset）
 # MaiBot WebUI 对 list[object] 的渲染会显示为 [object Object]，不便于编辑；
 # 因此用固定槽位字段来保证可视化表单可编辑。
 character_1_name = "mika" # 角色槽位 1：角色名（必须与云端 WebUI 的 character 下拉一致）
-character_1_presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"] # 角色槽位 1：预设列表（preset）
+character_1_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然" # 角色槽位 1：情绪有哪些（preset 列表，逗号/换行分隔）
 
 character_2_name = "sagiri" # 角色槽位 2：角色名
-character_2_presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"]
+character_2_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然"
 
 character_3_name = "character3" # 角色槽位 3：预留（留空则忽略）
-character_3_presets = ["普通"]
+character_3_presets = "普通"
 
 character_4_name = "character4" # 角色槽位 4：预留（留空则忽略）
-character_4_presets = ["普通"]
+character_4_presets = "普通"
 
 character_5_name = "character5" # 角色槽位 5：预留（留空则忽略）
-character_5_presets = ["普通"]
+character_5_presets = "普通"
 
 # ========== 云端仓库池调度 ==========
 remote_split_sentence = true # 是否让远端也进行“分句合成”（Gradio 入参 split_sentence）

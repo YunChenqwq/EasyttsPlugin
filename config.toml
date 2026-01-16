@@ -51,19 +51,19 @@ trust_env = false
 
 # ========== 角色/预设（可视化编辑：固定 5 个槽位）==========
 character_1_name = "mika"
-character_1_presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"]
+character_1_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然"
 
 character_2_name = "sagiri"
-character_2_presets = ["普通", "开心", "伤心", "生气", "害怕", "害羞", "惊讶", "认真", "疑问", "痛苦", "百感交集释然"]
+character_2_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然"
 
 character_3_name = "character3"
-character_3_presets = ["普通"]
+character_3_presets = "普通"
 
 character_4_name = "character4"
-character_4_presets = ["普通"]
+character_4_presets = "普通"
 
 character_5_name = "character5"
-character_5_presets = ["普通"]
+character_5_presets = "普通"
 
 # ========== 云端仓库池（可视化编辑：固定 5 个槽位）==========
 endpoint_1_name = "pool-1"
