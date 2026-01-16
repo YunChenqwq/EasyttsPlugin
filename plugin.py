@@ -38,6 +38,23 @@ VALID_BACKENDS = ["easytts"]
 
 
 class TTSExecutorMixin:
+    def _config_dict(self) -> dict:
+        """
+        MaiBot 里：
+        - Plugin(BasePlugin/PluginBase) 用 self.config 存配置
+        - Command(BaseCommand) / Action(BaseAction) 用 self.plugin_config 存配置
+
+        这个插件里 mixin 同时被三者继承，所以统一从可用的 dict 配置中读写，
+        避免出现 "'UnifiedTTSCommand' object has no attribute 'config'" 之类的错误。
+        """
+        cfg = getattr(self, "config", None)
+        if isinstance(cfg, dict):
+            return cfg
+        cfg = getattr(self, "plugin_config", None)
+        if isinstance(cfg, dict):
+            return cfg
+        return {}
+
     def _cfg(self, key: str, default=None):
         return get_config_with_aliases(self.get_config, key, default)
 
@@ -46,7 +63,8 @@ class TTSExecutorMixin:
         从可视化字段（固定 5 个槽位）构造角色列表。
         这是为了让 MaiBot WebUI 能“可视化编辑”，避免 list[object] 显示为 [object Object]。
         """
-        easytts_cfg = self.config.get("easytts") if isinstance(self.config, dict) else None
+        cfg = self._config_dict()
+        easytts_cfg = cfg.get("easytts") if isinstance(cfg, dict) else None
         if not isinstance(easytts_cfg, dict):
             return []
 
@@ -73,7 +91,8 @@ class TTSExecutorMixin:
         从可视化字段（固定 5 个槽位）构造云端仓库池 endpoints。
         仅返回 base_url 与 studio_token 都填了的仓库（否则后端校验会失败）。
         """
-        easytts_cfg = self.config.get("easytts") if isinstance(self.config, dict) else None
+        cfg = self._config_dict()
+        easytts_cfg = cfg.get("easytts") if isinstance(cfg, dict) else None
         if not isinstance(easytts_cfg, dict):
             return []
 
@@ -105,9 +124,10 @@ class TTSExecutorMixin:
         - 若用户只填了槽位字段，则在内存里生成 easytts.characters / easytts.endpoints 供后端读取。
         注意：这里只改内存 self.config，不直接写文件。
         """
-        if not isinstance(self.config, dict):
+        cfg = self._config_dict()
+        if not isinstance(cfg, dict):
             return
-        easytts_cfg = self.config.setdefault("easytts", {})
+        easytts_cfg = cfg.setdefault("easytts", {})
         if not isinstance(easytts_cfg, dict):
             return
 
@@ -1228,7 +1248,8 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
             return
 
         # 更新 easytts.characters：把每个角色的 presets 设为 Gradio 返回的下拉 choices
-        easytts_cfg = self.config.setdefault("easytts", {})
+        cfg = self._config_dict()
+        easytts_cfg = cfg.setdefault("easytts", {})
         existing = easytts_cfg.get("characters") or []
         old_map = {}
         if isinstance(existing, list):
