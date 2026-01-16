@@ -47,7 +47,21 @@ if not "%MISSING%"=="" (
   if /I "!ANSWER!"=="y" (
     echo Installing... (this may take a while)
     "%PY%" -m pip install -U pip
-    "%PY%" -m pip install genie-tts torch
+    rem Prefer local Genie-TTS repo if it exists next to this folder: ..\genietts
+    set "LOCAL_GENIE=%SCRIPT_DIR%..\genietts"
+    if exist "!LOCAL_GENIE!\setup.py" (
+      echo Installing Genie-TTS from local repo: "!LOCAL_GENIE!"
+      "%PY%" -m pip install -e "!LOCAL_GENIE!"
+    ) else (
+      echo Installing Genie-TTS from PyPI...
+      "%PY%" -m pip install genie-tts
+    )
+    rem torch is large; install only if missing includes 'torch'
+    echo %MISSING% | findstr /i /c:"torch" >nul
+    if not errorlevel 1 (
+      echo Installing torch...
+      "%PY%" -m pip install torch
+    )
   ) else (
     echo Skipped install.
   )
