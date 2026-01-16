@@ -14,6 +14,7 @@ rem ----------------------------------------------------------------------------
 
 set "SCRIPT_DIR=%~dp0"
 set "GUI_PY=%SCRIPT_DIR%easytts_model_converter_gui.py"
+set "GENIETTS_REPO=%SCRIPT_DIR%..\genietts"
 
 if defined MAIBOT_PYTHON (
   set "PY=%MAIBOT_PYTHON%"
@@ -37,30 +38,51 @@ if not exist "%GUI_PY%" (
 
 echo Using python: "%PY%"
 
-rem Check required modules (tkinter is stdlib, but some embedded builds may miss it)
+rem Check required modules.
+rem NOTE: We DO NOT require installing the full `genie-tts` package on Windows (it may pull native deps like jieba_fast).
+rem We use the locally cloned Genie-TTS repo in ..\genietts for conversion code.
 set "MISSING="
-for /f "usebackq delims=" %%A in (`"%PY%" -c "import importlib.util; mods=['tkinter','genie_tts','torch']; miss=[m for m in mods if importlib.util.find_spec(m) is None]; print(' '.join(miss)); raise SystemExit(0 if not miss else 2)"`) do set "MISSING=%%A"
+set "TMP_MISS=%TEMP%\\easytts_missing_%RANDOM%.txt"
+"%PY%" -c "import importlib.util; mods=['tkinter','torch','onnx']; miss=[m for m in mods if importlib.util.find_spec(m) is None]; print(' '.join(miss))" 1>"%TMP_MISS%" 2>nul
+if exist "%TMP_MISS%" (
+  for /f "usebackq delims=" %%A in ("%TMP_MISS%") do set "MISSING=%%A"
+  del /q "%TMP_MISS%" >nul 2>&1
+)
+
+if not exist "%GENIETTS_REPO%\\src\\genie_tts" (
+  echo [ERROR] Local Genie-TTS repo not found: "%GENIETTS_REPO%"
+  echo Please clone it to: "%SCRIPT_DIR%..\\genietts"
+  pause
+  exit /b 1
+)
 
 if not "%MISSING%"=="" (
   echo Missing packages: %MISSING%
-  set /p ANSWER=Install missing packages now? (y/N):
+  rem NOTE: Don't use raw parentheses inside a (...) block in .bat (it breaks parsing).
+  set /p ANSWER=Install missing packages now? y/N:
   if /I "!ANSWER!"=="y" (
     echo Installing... (this may take a while)
     "%PY%" -m pip install -U pip
-    rem Prefer local Genie-TTS repo if it exists next to this folder: ..\genietts
-    set "LOCAL_GENIE=%SCRIPT_DIR%..\genietts"
-    if exist "!LOCAL_GENIE!\setup.py" (
-      echo Installing Genie-TTS from local repo: "!LOCAL_GENIE!"
-      "%PY%" -m pip install -e "!LOCAL_GENIE!"
-    ) else (
-      echo Installing Genie-TTS from PyPI...
-      "%PY%" -m pip install genie-tts
+    rem tkinter cannot be installed via pip for embedded Pythons; if missing, user needs a Python build with Tk.
+    echo %MISSING% | findstr /i /c:"tkinter" >nul
+    if not errorlevel 1 (
+      echo [ERROR] tkinter is missing in this Python build. Please use a Python with Tk support.
+      pause
+      exit /b 2
     )
-    rem torch is large; install only if missing includes 'torch'
+
+    rem Install torch only if missing (large download).
     echo %MISSING% | findstr /i /c:"torch" >nul
     if not errorlevel 1 (
       echo Installing torch...
       "%PY%" -m pip install torch
+    )
+
+    rem Install onnx (required by converter).
+    echo %MISSING% | findstr /i /c:"onnx" >nul
+    if not errorlevel 1 (
+      echo Installing onnx...
+      "%PY%" -m pip install onnx
     )
   ) else (
     echo Skipped install.
@@ -68,6 +90,7 @@ if not "%MISSING%"=="" (
 )
 
 echo Launching GUI...
+set "GENIETTS_REPO=%GENIETTS_REPO%"
 "%PY%" "%GUI_PY%"
 
 endlocal
