@@ -1,94 +1,71 @@
 [plugin]
-enabled = true # 是否启用插件
-config_version = "0.1.0" # 配置版本（请勿修改）
+enabled = true
+config_version = "0.1.0"
 
 [general]
-tts_mode = "fixed" # TTS 模式：free=自由模式（交给 LLM 决定是否用语音）；fixed=固定模式（逐句翻译并逐句发送语音）
-default_backend = "easytts" # 默认后端（本插件仅支持 easytts）
-timeout = 60 # Action/Command 总体超时（秒）
-max_text_length = 120 # 最大文本长度（超过会降级为文字回复；语音建议更短）
-use_replyer_rewrite = false # 语音文案由 Planner/LLM 直接提供（避免二次生成导致啰嗦/失控）
-audio_output_dir = "" # 音频输出目录（留空使用项目根目录；use_base64_audio=true 时一般不落盘）
-use_base64_audio = false # 关闭：用本地文件路径发送（voiceurl），更稳定（避免超长 base64）
-split_sentences = false # 已在后端 remote_split_sentence 做分句合成；避免“一个消息多条语音”
-split_delay = 0.0 # 分句发送已关闭
-send_error_messages = true # 失败时是否给用户发送错误提示
-send_text_along_with_voice = true # 使用 unified_tts_action 时是否先发文字再发语音（推荐开启：避免文本/语音不一致）
-voice_translate_to = "ja" # 语音合成前是否翻译文字（默认 ja=日语；留空/none/off 表示不翻译，直接用原文合成）
-force_text_language = "zh" # 强制“发出去的文字”语言：zh=始终发中文（避免把日语译文直接发出去）；off=不强制
-fixed_mode_infer_emotion = true # 固定模式：是否逐句调用 LLM 选择 preset（只会从该角色已有 presets 中选）
+tts_mode = "fixed"
+default_backend = "easytts"
+timeout = 60
+max_text_length = 120
+use_replyer_rewrite = false
+audio_output_dir = ""
+use_base64_audio = false
+split_sentences = false
+split_delay = 0
+send_error_messages = true
+send_text_along_with_voice = true
+voice_translate_to = "ja"
+force_text_language = "zh"
+fixed_mode_infer_emotion = true
 
 [components]
-action_enabled = true # 是否启用 Action（关键词触发自动语音回复）
-command_enabled = true # 是否启用 Command（手动命令：/eztts）
+action_enabled = true
+command_enabled = true
 
 [easytts]
-default_character = "sagiri" # 默认角色（character）
-default_preset = "普通" # 默认预设（preset）
-auto_fetch_gradio_schema = true # 插件启动时自动抓 /gradio_api/info 同步角色/预设列表（让 LLM 只用真实存在的 preset）
-schema_cache_ttl = 86400 # schema 缓存有效期（秒，0=每次启动都抓取）
-schema_cache_file = "_gradio_schema_cache.json" # schema 缓存文件名（相对插件目录；留空则不落盘缓存）
-
-# 是否让远端也进行“分句合成”（Gradio 入参 split_sentence）
+default_character = ""
+default_preset = ""
+auto_fetch_gradio_schema = true
+schema_cache_ttl = 0
+schema_cache_file = "_gradio_schema_cache.json"
 remote_split_sentence = true
-# 是否优先选择更空闲的仓库（依据 queue/status 的 queue_size）
 prefer_idle_endpoint = true
-# 繁忙阈值：queue_size > 该值视为忙（0=只有 queue_size==0 才算空闲）
 busy_queue_threshold = 0
-
-# /gradio_api/queue/status 超时（秒）
 status_timeout = 3
-# /gradio_api/queue/join 超时（秒）
 join_timeout = 30
-# /gradio_api/queue/data（SSE）超时（秒）
 sse_timeout = 120
-# 音频下载超时（秒）
 download_timeout = 120
-
-# aiohttp 是否继承系统代理（Windows 环境常见代理导致连接问题，建议 false）
 trust_env = false
-
-# ========== 角色/预设（可视化编辑：固定 5 个槽位）==========
-character_1_name = "mika"
-character_1_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然"
-
-character_2_name = "sagiri"
-character_2_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然"
-
-character_3_name = "character3"
-character_3_presets = "普通"
-
-character_4_name = "character4"
-character_4_presets = "普通"
-
-character_5_name = "character5"
-character_5_presets = "普通"
-
-# ========== 云端仓库池（可视化编辑：固定 5 个槽位）==========
+character_1_name = ""
+character_1_presets = ""
+character_2_name = ""
+character_2_presets = ""
+character_3_name = ""
+character_3_presets = ""
+character_4_name = ""
+character_4_presets = ""
+character_5_name = ""
+character_5_presets = ""
 endpoint_1_name = "pool-1"
-endpoint_1_base_url = "https://your-app.ms.show"
-endpoint_1_studio_token = "填你的 studio_token"
-endpoint_1_fn_index = 3
-endpoint_1_trigger_id = 19
-
+endpoint_1_base_url = ""
+endpoint_1_studio_token = ""
+endpoint_1_fn_index = 4
+endpoint_1_trigger_id = 25
 endpoint_2_name = "pool-2"
 endpoint_2_base_url = ""
 endpoint_2_studio_token = ""
 endpoint_2_fn_index = 3
 endpoint_2_trigger_id = 19
-
 endpoint_3_name = "pool-3"
 endpoint_3_base_url = ""
 endpoint_3_studio_token = ""
 endpoint_3_fn_index = 3
 endpoint_3_trigger_id = 19
-
 endpoint_4_name = "pool-4"
 endpoint_4_base_url = ""
 endpoint_4_studio_token = ""
 endpoint_4_fn_index = 3
 endpoint_4_trigger_id = 19
-
 endpoint_5_name = "pool-5"
 endpoint_5_base_url = ""
 endpoint_5_studio_token = ""

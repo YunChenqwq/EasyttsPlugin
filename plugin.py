@@ -14,6 +14,7 @@ sys.dont_write_bytecode = True
 import asyncio
 import json
 import os
+import re
 import time
 import urllib.request
 from pathlib import Path
@@ -1132,6 +1133,8 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
                         and cached_schema.get("characters")
                     ):
                         self._apply_gradio_schema(cached_schema)
+                        # Also write back into config.toml so WebUI users can see the updated list.
+                        self._maybe_write_schema_back_to_config(cached_schema)
                         return
             except Exception:
                 pass
@@ -1139,12 +1142,147 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
         schema = self._fetch_gradio_schema()
         if schema:
             self._apply_gradio_schema(schema)
+            self._maybe_write_schema_back_to_config(schema)
             if cache_path:
                 try:
                     with open(cache_path, "w", encoding="utf-8") as f:
                         json.dump({"fetched_at": now, "schema": schema}, f, ensure_ascii=False, indent=2)
                 except Exception:
                     pass
+
+    def _maybe_write_schema_back_to_config(self, schema: dict) -> None:
+        """
+        Keep config.toml in sync with the fetched Gradio schema.
+
+        Even though we have _gradio_schema_cache.json, many users expect the WebUI config file itself
+        to show the latest characters/presets (and want the plugin to keep it up-to-date automatically).
+        """
+        try:
+            char_presets = schema.get("characters") or {}
+            if not isinstance(char_presets, dict) or not char_presets:
+                return
+
+            chars = [str(k).strip() for k in char_presets.keys() if str(k).strip()]
+            chars = [c for c in chars if c != "__upload_first__"]
+            if not chars:
+                return
+
+            cfg = self._config_dict()
+            easytts_cfg = cfg.setdefault("easytts", {})
+            if not isinstance(easytts_cfg, dict):
+                return
+
+            # Fill/override slot fields (first 5 characters).
+            for i in range(1, 6):
+                name_key = f"character_{i}_name"
+                presets_key = f"character_{i}_presets"
+                if i <= len(chars):
+                    name = chars[i - 1]
+                    presets = char_presets.get(name) or []
+                    presets = [str(p).strip() for p in presets if str(p).strip()]
+                    easytts_cfg[name_key] = name
+                    easytts_cfg[presets_key] = ",".join(presets) if presets else "Normal"
+                else:
+                    easytts_cfg[name_key] = ""
+                    easytts_cfg[presets_key] = ""
+
+            # Ensure defaults are valid.
+            default_character = str(easytts_cfg.get("default_character", "") or "").strip()
+            if not default_character or default_character == "__upload_first__" or default_character not in chars:
+                easytts_cfg["default_character"] = chars[0]
+                default_character = chars[0]
+
+            default_preset = str(easytts_cfg.get("default_preset", "") or "").strip()
+            presets_for_default = char_presets.get(default_character) or []
+            presets_for_default = [str(p).strip() for p in presets_for_default if str(p).strip()]
+            if not presets_for_default:
+                presets_for_default = ["Normal"]
+            if default_preset not in presets_for_default:
+                if "普通" in presets_for_default:
+                    easytts_cfg["default_preset"] = "普通"
+                elif "Normal" in presets_for_default:
+                    easytts_cfg["default_preset"] = "Normal"
+                else:
+                    easytts_cfg["default_preset"] = presets_for_default[0]
+
+            self._write_easytts_slots_to_toml_file(os.path.join(self.plugin_dir, "config.toml"), easytts_cfg)
+        except Exception:
+            # Don't block plugin startup.
+            pass
+
+    def _write_easytts_slots_to_toml_file(self, toml_path: str, easytts_cfg: dict) -> None:
+        """
+        Best-effort write-back to config.toml without external TOML libraries.
+
+        We only touch a small set of simple keys under [easytts].
+        """
+        if not toml_path or not os.path.exists(toml_path):
+            return
+
+        def q(s: str) -> str:
+            s = str(s)
+            s = s.replace("\\", "\\\\").replace("\"", "\\\"")
+            return f"\"{s}\""
+
+        def to_toml_value(v):
+            if isinstance(v, bool):
+                return "true" if v else "false"
+            if isinstance(v, (int, float)):
+                return str(v)
+            return q(str(v))
+
+        keys = ["default_character", "default_preset"]
+        for i in range(1, 6):
+            keys.append(f"character_{i}_name")
+            keys.append(f"character_{i}_presets")
+
+        desired = {k: to_toml_value(easytts_cfg.get(k, "")) for k in keys}
+
+        raw = Path(toml_path).read_text(encoding="utf-8", errors="ignore").splitlines(True)
+
+        # Locate [easytts] section (case-insensitive).
+        sec_start = None
+        sec_end = len(raw)
+        for idx, line in enumerate(raw):
+            m = re.match(r"^\s*\[(.+?)\]\s*$", line)
+            if not m:
+                continue
+            name = m.group(1).strip().lower()
+            if name == "easytts":
+                sec_start = idx
+                continue
+            if sec_start is not None:
+                sec_end = idx
+                break
+        if sec_start is None:
+            if raw and not raw[-1].endswith("\n"):
+                raw[-1] = raw[-1] + "\n"
+            raw.append("\n[easytts]\n")
+            sec_start = len(raw) - 1
+            sec_end = len(raw)
+
+        key_line_idx: dict[str, int] = {}
+        for idx in range(sec_start + 1, sec_end):
+            line = raw[idx]
+            m = re.match(r"^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$", line)
+            if not m:
+                continue
+            k = m.group(1).strip()
+            if k in desired and k not in key_line_idx:
+                key_line_idx[k] = idx
+
+        for k, v in desired.items():
+            if k in key_line_idx:
+                raw[key_line_idx[k]] = f"{k} = {v}\n"
+
+        insert_at = sec_end
+        for k, v in desired.items():
+            if k in key_line_idx:
+                continue
+            raw.insert(insert_at, f"{k} = {v}\n")
+            insert_at += 1
+
+        Path(toml_path).write_text("".join(raw), encoding="utf-8")
 
     def _fetch_gradio_schema(self) -> dict:
         """

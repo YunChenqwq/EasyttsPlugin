@@ -25,26 +25,31 @@ action_enabled = true # 是否启用 Action（LLM_JUDGE：由计划器让 LLM �
 command_enabled = true # 是否启用 Command（手动命令：/eztts）
 
 [easytts]
-default_character = "mika" # 默认角色（character）
-default_preset = "普通" # 默认预设（preset）
+default_character = "" # 默认角色（character），留空则启动后会自动抓取并填写
+default_preset = "" # 默认预设（preset），留空则启动后会自动抓取并填写
+
+# 启动时自动抓取云端 WebUI 的角色/预设下拉，并回写到本地 config.toml（给小白更直观）
+auto_fetch_gradio_schema = true
+schema_cache_ttl = 0
+schema_cache_file = "_gradio_schema_cache.json"
 
 # ========== 角色/预设（可视化编辑：固定 5 个槽位）==========
 # MaiBot WebUI 对 list[object] 的渲染会显示为 [object Object]，不便于编辑；
 # 因此用固定槽位字段来保证可视化表单可编辑。
-character_1_name = "mika" # 角色槽位 1：角色名（必须与云端 WebUI 的 character 下拉一致）
-character_1_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然" # 角色槽位 1：情绪有哪些（preset 列表，逗号/换行分隔）
+character_1_name = "" # 角色槽位 1：启动后会自动填写（留空即可）
+character_1_presets = "" # 角色槽位 1：启动后会自动填写（留空即可）
 
-character_2_name = "sagiri" # 角色槽位 2：角色名
-character_2_presets = "普通,开心,伤心,生气,害怕,害羞,惊讶,认真,疑问,痛苦,百感交集释然"
+character_2_name = ""
+character_2_presets = ""
 
-character_3_name = "character3" # 角色槽位 3：预留（留空则忽略）
-character_3_presets = "普通"
+character_3_name = ""
+character_3_presets = ""
 
-character_4_name = "character4" # 角色槽位 4：预留（留空则忽略）
-character_4_presets = "普通"
+character_4_name = ""
+character_4_presets = ""
 
-character_5_name = "character5" # 角色槽位 5：预留（留空则忽略）
-character_5_presets = "普通"
+character_5_name = ""
+character_5_presets = ""
 
 # ========== 云端仓库池调度 ==========
 remote_split_sentence = true # 是否让远端也进行“分句合成”（Gradio 入参 split_sentence）
@@ -68,8 +73,8 @@ trust_env = false # aiohttp 是否继承系统代理（Windows 环境常见代�
 endpoint_1_name = "pool-1" # 仓库池 1：名称（用于日志）
 endpoint_1_base_url = "https://your-app.ms.show" # 仓库池 1：Gradio 基地址
 endpoint_1_studio_token = "填你的 studio_token" # 仓库池 1：studio_token
-endpoint_1_fn_index = 3
-endpoint_1_trigger_id = 19
+endpoint_1_fn_index = 4
+endpoint_1_trigger_id = 25
 
 endpoint_2_name = "pool-2"
 endpoint_2_base_url = "https://your-app-2.ms.show"

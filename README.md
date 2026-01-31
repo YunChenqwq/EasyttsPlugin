@@ -85,7 +85,10 @@ character_1_presets = "普通,开心,伤心"
 - 所以你传入的 `emotion` 必须是该角色真实存在的 preset（否则会回退到 `easytts.default_preset`，一般是“普通”）。
 
 自动抓取（推荐开启）：
-- `easytts.auto_fetch_gradio_schema = true` 时，插件启动会从你的 endpoints 自动抓取 “角色下拉 + 每个角色的 preset 下拉”，并写入运行时配置（可选写入 `_gradio_schema_cache.json` 缓存）。
+- `easytts.auto_fetch_gradio_schema = true` 时，插件启动会从你的 endpoints 自动抓取 “角色下拉 + 每个角色的 preset 下拉”。
+- 抓取成功后会同时：
+  - 写入 `_gradio_schema_cache.json` 缓存
+  - **回写到 `config.toml` 的 `character_1_name/character_1_presets ...` 槽位字段**（让小白在 WebUI 里能直接看到最新角色/情绪，不需要手动填）
 - 如果你更新了云端模型/预设，但插件没更新：删除插件目录下的 `_gradio_schema_cache.json` 后重启即可强制刷新。
 
 ### 2.3 两种模式：free / fixed

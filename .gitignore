@@ -5,3 +5,5 @@
 .venv/
 .env
 logs/
+_gradio_schema_cache.json
+config.toml.backup.*

@@ -3,7 +3,10 @@
   "name": "EasyPlugin 语音合成插件（云端仓库池）",
   "version": "0.1.0",
   "description": "基于 GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）与魔搭社区（ModelScope Studio）免费托管的语音合成插件，支持按情绪/预设生成语音（emotion 参数直接等同 preset，不做任何映射）以及云端仓库池自动切换。",
-  "author": { "name": "yunchenqwq", "url": "https://github.com/YunChenqwq" },
+  "author": {
+    "name": "yunchenqwq",
+    "url": "https://github.com/YunChenqwq"
+  },
   "license": "AGPL-v3.0",
   "host_application": {
     "min_version": "0.11.0"
@@ -31,10 +34,24 @@
   "plugin_info": {
     "plugin_type": "general",
     "components": [
-      { "type": "action", "name": "unified_tts_action", "description": "关键词触发自动语音回复（easytts 仓库池）。" },
-      { "type": "command", "name": "unified_tts_command", "description": "手动 /eztts 转语音（easytts 仓库池）。" }
+      {
+        "type": "action",
+        "name": "unified_tts_action",
+        "description": "关键词触发自动语音回复（easytts 仓库池）。"
+      },
+      {
+        "type": "command",
+        "name": "unified_tts_command",
+        "description": "手动 /eztts 转语音（easytts 仓库池）。"
+      }
     ],
-    "dependencies": { "python": ["aiohttp"], "system": [], "plugins": [] }
+    "dependencies": {
+      "python": [
+        "aiohttp"
+      ],
+      "system": [],
+      "plugins": []
+    }
   },
   "configuration": {
     "config_file": "config.toml",
