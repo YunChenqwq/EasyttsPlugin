@@ -461,7 +461,12 @@ class App(tk.Tk):
             _write_json(model_dir / "_easytts_meta.json", pack, overwrite=args.overwrite_meta, log=self._log)
 
             # prompt_wav.json template (optional overwrite)
-            _write_json(model_dir / "prompt_wav.json", {}, overwrite=args.overwrite_meta, log=self._log)
+            _write_json(
+                model_dir / "prompt_wav.json",
+                _default_prompt_wav_template(),
+                overwrite=args.overwrite_meta,
+                log=self._log,
+            )
 
             # Convert -> tts_models/
             if local_repo:
@@ -515,6 +520,27 @@ def _write_json(path: Path, obj: object, *, overwrite: bool, log) -> None:
         log(f"写入：{path.name}")
     except Exception as e:
         log(f"写入失败：{path.name}: {e}")
+
+
+def _default_prompt_wav_template() -> dict:
+    """
+    Default prompt_wav.json template.
+
+    Keep it beginner-friendly:
+    - Only add hints in the first preset name and the first filename.
+    - Users should replace the filenames with real files under prompt_wav/ (or emotion/).
+    """
+    return {
+        "普通（这里改成你的情绪名）": {
+            "wav": "这里填你的文件名.wav",
+            "text": "（请填写：该音频里说的内容，必须与音频内容一致）",
+        },
+        "开心": {"wav": "yourwav.wav", "text": "（请填写：该情绪参考音频里说的内容）"},
+        "伤心": {"wav": "yourwav.wav", "text": "（请填写：该情绪参考音频里说的内容）"},
+        "生气": {"wav": "yourwav.wav", "text": "（请填写：该情绪参考音频里说的内容）"},
+        "害怕": {"wav": "yourwav.wav", "text": "（请填写：该情绪参考音频里说的内容）"},
+        "害羞": {"wav": "yourwav.wav", "text": "（请填写：该情绪参考音频里说的内容）"},
+    }
 
 
 def validate_model_pack_dir(model_dir: str) -> tuple[bool, str]:

@@ -5,6 +5,11 @@
 推荐先看使用教程视频（含安装/配置/演示）：  
 https://space.bilibili.com/1883907316
 
+## 魔搭社区（ModelScope）地址（推荐用魔搭社区 WebUI/仓库上传模型）
+
+- 模板 Space（推荐复制）：`https://www.modelscope.cn/studios/YunChenqwq/easytts-template/summary`
+- easytts Space：`https://www.modelscope.cn/studios/YunChenqwq/easytts/summary`
+
 ## 功能概览
 
 - 自动语音回复（Action，`LLM_JUDGE`）：由规划器/LLM 决定是否调用语音
@@ -35,7 +40,7 @@ E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyPlugin\
 
 ## 2. 配置（config.toml）
 
-配置文件：`EasyttsPugin/config.toml`
+配置文件：`EasyPlugin/config.toml`
 
 推荐方式（更省事）：在 MaiBot WebUI 里可视化编辑配置（本插件已做成表单，不需要写 JSON）。
 
