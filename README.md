@@ -46,6 +46,12 @@ E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyPlugin\
 
 你也可以直接编辑 `config.toml`（高级用法），但注意：WebUI 保存配置时可能会重排格式/移除 TOML 注释，这属于 WebUI 的正常行为。
 
+### 2.0 推荐配置流程（给小白）
+
+1) 先只填写仓库池 1（`endpoint_1_base_url` + `endpoint_1_studio_token` + `fn_index/trigger_id`）
+2) 重启 MaiBot（或重载插件）
+3) 插件启动后会自动抓取云端 WebUI 的角色/情绪下拉，并**回写**到你的 `config.toml`（角色槽位与默认角色/默认预设会自动填好）
+
 ### 2.1 云端仓库池（必填，推荐用 WebUI 填）
 
 仓库池是“固定 5 个槽位”的表单字段（建议至少填 2 个，方便繁忙时自动切换）：
@@ -54,8 +60,8 @@ E:\bot\MaiBotOneKey\modules\MaiBot\plugins\EasyPlugin\
 endpoint_1_name = "pool-1"
 endpoint_1_base_url = "https://xxx.ms.show"
 endpoint_1_studio_token = "你的studio_token"
-endpoint_1_fn_index = 3
-endpoint_1_trigger_id = 19
+endpoint_1_fn_index = 4
+endpoint_1_trigger_id = 25
 
 endpoint_2_name = "pool-2"
 endpoint_2_base_url = "https://yyy.ms.show"
@@ -69,11 +75,16 @@ endpoint_2_trigger_id = 19
 - 或者 Application/Storage → Cookies → 找到 `studio_token`
 
 `fn_index` / `trigger_id`：
-- 通常可以在 `queue/join` 的请求体里看到（或由你的 WebUI 版本决定）。
+- 通常可以在 `gradio_api/queue/join` 的请求体里看到（并且会随着 WebUI 版本/组件改动而变化）。
+- 如果你使用我提供的 `easytts-template` 模板 Space：目前常见是 `fn_index=4`、`trigger_id=25`，但仍以你实际抓到的为准。
 
 ### 2.2 角色与预设（情绪/预设列表，推荐用 WebUI 填）
 
-角色/预设同样是“固定 5 个槽位”的表单字段。示例：
+角色/预设同样是“固定 5 个槽位”的表单字段。
+
+推荐做法：**留空**，让插件启动后自动抓取并回写到 `config.toml`。
+
+你也可以手动填（高级/离线模式）。示例：
 
 ```toml
 character_1_name = "mika"
@@ -82,7 +93,7 @@ character_1_presets = "普通,开心,伤心"
 
 规则（很重要）：
 - 本插件 **不做任何映射**：`emotion` 的值会被当作 **preset 名** 直接使用。
-- 所以你传入的 `emotion` 必须是该角色真实存在的 preset（否则会回退到 `easytts.default_preset`，一般是“普通”）。
+- 所以你传入的 `emotion` 必须是该角色真实存在的 preset（否则会回退到 `easytts.default_preset`）。
 
 自动抓取（推荐开启）：
 - `easytts.auto_fetch_gradio_schema = true` 时，插件启动会从你的 endpoints 自动抓取 “角色下拉 + 每个角色的 preset 下拉”。
