@@ -23,7 +23,15 @@ https://space.bilibili.com/1883907316
 
 ## 1. 安装（Windows / MaiBotOneKey）
 
-优先推荐：直接用 MaiBot WebUI 插件市场安装，见 `INSTALL.md`。
+### 方式 A：MaiBot WebUI 插件市场安装（推荐）
+
+1) 打开 MaiBot WebUI → **插件市场**
+2) 搜索：`tts`
+3) 找到本插件：**EasyPlugin / yunchenqwq.easy_plugin**
+4) 点击安装 → 等待完成
+5) 重启 MaiBot（或在 WebUI 里重载插件）
+
+### 方式 B：手动安装（离线/无法访问插件市场）
 
 1) 下载/克隆本仓库  
 2) 把整个目录放到你的 MaiBot 插件目录，例如：
@@ -176,13 +184,13 @@ tts_mode = "free"   # 或 "fixed"
 - 一条用户消息最多调用一次（free 模式已经在 action_require 里强约束）
 - `emotion` 只能从该角色真实存在的 preset 里选 1 个（不确定就留空）
 
-#### 示例：让 LLM 会用语音的 `plan_style` 片段（纱雾 / sagiri）
+#### 示例：让 LLM 会用语音的 `plan_style` 片段（通用模板）
 
 把下面这一段（仅示例，按需调整）放到 `config/bot_config.toml` 的 `[personality]` 里（替换/覆盖你的 `plan_style` 即可）：
 
 ```toml
 # 麦麦的说话规则，行为风格:
-plan_style = "1.思考**所有**可用 action，每个动作是否符合当下条件；符合就使用。\n2.相同内容已执行过就不要重复。\n3.优先简短回复，不要长篇大论。\n4.允许使用表情包 action: emoji 来辅助表达情绪（不要连续发送）。\n5.语音 action: unified_tts_action：如果它的描述里包含“固定模式”，则你必须选择它作为唯一回复方式（插件会逐句发语音，并逐句选择 preset）。否则（自由模式）由你决定是否使用（LLM_JUDGE）。\n6.选择 unified_tts_action 时：不要再额外选择其他“文字回复”action（避免文字/语音不匹配）。unified_tts_action 会先发送 text 文字，再发送语音。\n7.选择 unified_tts_action 时：text 只写你要发给用户看到的最终短回复（建议 1~2 句，<=60字）。不要把“翻译后的日语”写进 text；语音需要日语时插件会自动翻译。\n8.选择 unified_tts_action 时：voice 默认填 `sagiri`（不要写 角色:预设）；emotion 可填 1 个预设名（=preset，例如：普通/开心/伤心/生气/害怕/害羞/惊讶/认真/疑问/痛苦/百感交集释然）。注意：emotion 必须是该角色真实存在的 preset，不确定就留空默认普通。"
+plan_style = "1.思考**所有**可用 action，每个动作是否符合当下条件；符合就使用。\n2.相同内容已执行过就不要重复。\n3.优先简短回复，不要长篇大论。\n4.允许使用表情包 action: emoji 来辅助表达情绪（不要连续发送）。\n5.语音 action: unified_tts_action：如果它的描述里包含“固定模式”，则你必须选择它作为唯一回复方式（插件会逐句发语音，并逐句选择 preset）。否则（自由模式）由你决定是否使用（LLM_JUDGE）。\n6.选择 unified_tts_action 时：不要再额外选择其他“文字回复”action（避免文字/语音不匹配）。unified_tts_action 会先发送 text 文字，再发送语音。\n7.选择 unified_tts_action 时：text 只写你要发给用户看到的最终短回复（建议 1~2 句，<=60字）。不要把“翻译后的日语”写进 text；语音需要日语时插件会自动翻译。\n8.选择 unified_tts_action 时：voice **优先留空**（让插件使用 default_character / 自动抓取到的角色列表）；只有在你明确知道角色名时才填写。emotion **只能**填写该角色真实存在的 preset 名（来自插件自动抓取的列表）；不确定就留空，让插件使用 default_preset/自动情绪。"
 ```
 
 要点解释：
