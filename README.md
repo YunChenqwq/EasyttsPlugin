@@ -178,13 +178,15 @@ action_enabled = true
 tts_mode = "free"   # 或 "fixed"
 ```
 
-3) 让 LLM 会用：  
+3) 让 LLM 会用（很重要）：  
 插件提供的 action 名为 `unified_tts_action`。你需要在 bot 的提示词/规划器说明中明确：
 - 什么时候应该用语音（例如用户明确说“用语音说/朗读/tts”等）
 - 一条用户消息最多调用一次（free 模式已经在 action_require 里强约束）
 - `emotion` 只能从该角色真实存在的 preset 里选 1 个（不确定就留空）
 
-#### 示例：让 LLM 会用语音的 `plan_style` 片段（通用模板）
+---
+
+## ⭐ 推荐提示词（plan_style）模板（强烈建议复制）
 
 把下面这一段（仅示例，按需调整）放到 `config/bot_config.toml` 的 `[personality]` 里（替换/覆盖你的 `plan_style` 即可）：
 
