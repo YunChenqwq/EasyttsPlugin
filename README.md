@@ -23,6 +23,8 @@ https://space.bilibili.com/1883907316
 
 ## 1. 安装（Windows / MaiBotOneKey）
 
+优先推荐：直接用 MaiBot WebUI 插件市场安装，见 `INSTALL.md`。
+
 1) 下载/克隆本仓库  
 2) 把整个目录放到你的 MaiBot 插件目录，例如：
 
