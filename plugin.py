@@ -37,6 +37,23 @@ logger = get_logger("EasyPlugin")
 
 VALID_BACKENDS = ["easytts"]
 
+def _force_niisan_token(text: str) -> str:
+    """
+    Fix a common translation pitfall for the Sagiri persona.
+
+    "尼桑" is often mistranslated as "Nissan/日産/ニッサン/日产".
+    We force it to the intended romaji token "niisan" to keep pronunciation stable.
+    """
+    if not text:
+        return ""
+    t = str(text)
+    # Pre-translation: stabilize the source text.
+    t = t.replace("尼桑", "niisan")
+    # Post-translation: guard against common mis-translations.
+    for bad in ("Nissan", "日産", "ニッサン", "ﾆｯｻﾝ", "日产"):
+        t = t.replace(bad, "niisan")
+    return t
+
 
 class TTSExecutorMixin:
     def _config_dict(self) -> dict:
@@ -325,9 +342,13 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
             return text
 
         try:
+            raw_reply = text
+            if target in ("ja", "jp", "japanese"):
+                raw_reply = _force_niisan_token(raw_reply)
+
             ok, llm_response = await generator_api.rewrite_reply(
                 chat_stream=self.chat_stream,
-                raw_reply=text,
+                raw_reply=raw_reply,
                 reason=(
                     "请把【原文】翻译成自然的日语。\n"
                     "严格要求：\n"
@@ -342,6 +363,7 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
             if ok and llm_response and getattr(llm_response, "content", None):
                 jp = self._strip_llm_wrappers(llm_response.content)
                 jp = TTSTextUtils.clean_text(jp, self.max_text_length)
+                jp = _force_niisan_token(jp)
                 return jp or text
         except Exception as e:
             logger.error(f"{self.log_prefix} 翻译日语失败，回退使用原文: {e}")
