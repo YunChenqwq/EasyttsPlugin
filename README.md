@@ -195,15 +195,28 @@ tts_mode = "free"   # 或 "fixed"
 
 ## ⭐ 推荐提示词（plan_style）模板（强烈建议复制）
 
-把下面这一段（仅示例，按需调整）放到 `config/bot_config.toml` 的 `[personality]` 里（替换/覆盖你的 `plan_style` 即可）：
+你可以按 `general.tts_mode` 选择两套不同的提示词：
+
+- `tts_mode="free"`：自由模式（更像真人聊天：有时文字/emoji，有时语音）
+- `tts_mode="fixed"`：固定模式（每次触发都逐句发语音，适合“我就是想全程语音”）
+
+把下面对应的一段放到 `config/bot_config.toml` 的 `[personality]` 里（替换/覆盖你的 `plan_style` 即可）。
+
+### A) 自由模式（tts_mode="free"）推荐 plan_style
 
 ```toml
-# 麦麦的说话规则，行为风格:
-plan_style = "1.思考**所有**可用 action，每个动作是否符合当下条件；符合就使用。\n2.相同内容已执行过就不要重复。\n3.优先简短回复，不要长篇大论。\n4.允许使用表情包 action: emoji 来辅助表达情绪（不要连续发送）。\n5.语音 action: unified_tts_action：如果它的描述里包含“固定模式”，则你必须选择它作为唯一回复方式（插件会逐句发语音，并逐句选择 preset）。否则（自由模式）由你决定是否使用（LLM_JUDGE）。\n6.选择 unified_tts_action 时：不要再额外选择其他“文字回复”action（避免文字/语音不匹配）。unified_tts_action 会先发送 text 文字，再发送语音。\n7.选择 unified_tts_action 时：text 只写你要发给用户看到的最终短回复（建议 1~2 句，<=60字）。不要把“翻译后的日语”写进 text；语音需要日语时插件会自动翻译。\n8.选择 unified_tts_action 时：voice **优先留空**（让插件使用 default_character / 自动抓取到的角色列表）；只有在你明确知道角色名时才填写。emotion **只能**填写该角色真实存在的 preset 名（来自插件自动抓取的列表）；不确定就留空，让插件使用 default_preset/自动情绪。"
+# 麦麦的说话规则（自由模式：按需用语音，更自然）
+plan_style = "1.思考所有可用 action：是否满足触发条件；满足才用；同内容执行过就不重复。\n2.默认短回复（1~2 句，<=60字），用标点分句（。？！……）让语音更自然。\n3.允许使用表情包 action: emoji 辅助情绪（不要连发）：害羞/调侃/撒娇/不想说时可用。\n4.语音 action: unified_tts_action（LLM_JUDGE）：仅在更适合语音表达时使用（比如需要更有感情的安慰/撒娇/朗读/更强语气）；用户明确要求“用语音/朗读/念出来”时必须使用。\n5.选择 unified_tts_action 时：不要再额外选择其他文字回复 action；text 只写用户看到的最终短回复，不要写翻译后的日语。\n6.选择 unified_tts_action 时：voice 优先留空（让插件用 default_character/自动抓取结果）；只有你非常确定角色名时才填。\n7.选择 unified_tts_action 时：emotion 只有在你确信它是该角色真实存在的 preset 名时才填；不确定就留空，让插件用 default_preset/自动情绪。语气要更灵活：疑问句倾向“疑问”，被夸/被撩倾向“害羞/开心”，被惹毛倾向“生气”，安慰/解释倾向“认真/普通”，难过场景倾向“伤心”。"
+```
+
+### B) 固定模式（tts_mode="fixed"）推荐 plan_style
+
+```toml
+# 麦麦的说话规则（固定模式：每次触发都逐句语音）
+plan_style = "1.如果 unified_tts_action 的描述里包含“固定模式”，则必须选择它作为唯一回复方式（不要再选其它文字回复 action）。\n2.text 只写用户能看到的最终短回复（建议 1~2 句，<=60字），多用标点（。？！……）方便逐句语音。\n3.固定模式下：voice 和 emotion 默认都留空（让插件逐句选择 preset）；只有用户明确指定角色/情绪时才填写。\n4.绝不要把“翻译后的日语”写进 text；语音需要日语时插件会自动翻译。"
 ```
 
 要点解释：
-- 这段 `plan_style` 会显式教 LLM：什么时候用 `unified_tts_action`、如何填 `text/voice/emotion`、以及“一个消息一个语音”的硬约束。
 - 本插件不做任何“情绪映射”：`emotion` **就是** preset 名；写错/不存在会回退默认 preset。
 
 ---
