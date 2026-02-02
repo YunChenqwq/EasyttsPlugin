@@ -477,7 +477,9 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
             # 获取最终文本
             success, final_text = await self._get_final_text(raw_text, reason, use_replyer)
             if not success or not final_text:
-                await self._send_error("无法生成语音内容")
+                # LLM 有时会选择了 TTS action 但没有提供可用文本（例如本轮只想发 emoji）。
+                # 这种情况不应打扰用户；仅记录日志即可。
+                logger.info(f"{self.log_prefix} 跳过语音：无法生成语音内容（text empty）")
                 return False, "text empty"
 
             # 清理文本（不做硬截断）
@@ -520,7 +522,8 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
             # 语音文本：默认翻译成日语（如果已是日语则保持原文）。
             voice_text = await self._voice_text_from_text(voice_src_text)
             if not voice_text:
-                await self._send_error("语音文本为空（翻译失败或清洗后为空）")
+                # 翻译/清洗导致空文本：不发“无法生成语音”提示，避免与 emoji 等动作混用时刷屏。
+                logger.info(f"{self.log_prefix} 跳过语音：语音文本为空（translate/clean empty）")
                 return False, "voice text empty"
             if len(voice_text) > self.max_text_length:
                 voice_text = voice_text[: self.max_text_length].strip()
@@ -577,7 +580,7 @@ class UnifiedTTSActionFixed(UnifiedTTSAction):
 
             success, final_text = await self._get_final_text(raw_text, reason, use_replyer)
             if not success or not final_text:
-                await self._send_error("无法生成语音内容")
+                logger.info(f"{self.log_prefix} 跳过语音：无法生成语音内容（text empty）")
                 return False, "text empty"
 
             clean_text = TTSTextUtils.clean_text(final_text, self.max_text_length)
@@ -612,7 +615,7 @@ class UnifiedTTSActionFixed(UnifiedTTSAction):
 
                 voice_text = await self._voice_text_from_text(sent)
                 if not voice_text:
-                    await self._send_error("语音文本为空（翻译失败或清洗后为空）")
+                    logger.info(f"{self.log_prefix} 跳过语音：语音文本为空（translate/clean empty）")
                     return False, "voice text empty"
                 if len(voice_text) > self.max_text_length:
                     voice_text = voice_text[: self.max_text_length].strip()
