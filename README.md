@@ -3,7 +3,14 @@
 基于 **GPT-SoVITS 推理特化库（Genie-TTS / GPT-SoVITS ONNX 推理引擎）** 的 WebUI（ModelScope Studio / Gradio，ms.show 免费托管）实现语音合成，并提供 **云端仓库池自动切换** 与 **按情绪/预设生成语音** 的 MaiBot 插件。
 
 推荐先看使用教程视频（含安装/配置/演示）：  
-https://space.bilibili.com/1883907316
+https://www.bilibili.com/video/BV1tqFPzCEfm/
+
+## 整合包下载 / 答疑
+
+- 答疑QQ群：`653488716`
+- 转换模型一键上传整合包：进群下载（约 200MB）
+- 插件一键上传整合包（百度网盘）：`https://pan.baidu.com/s/1DWkFq2qlqPLyUkLUrdSh0g?pwd=u59y`
+- 没有度盘会员：进群下载（约 200MB）
 
 ## 魔搭社区（ModelScope）地址（推荐用魔搭社区 WebUI/仓库上传模型）
 
