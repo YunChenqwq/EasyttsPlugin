@@ -1,6 +1,7 @@
 [plugin]
 enabled = true
 config_version = "0.1.0"
+# 教程视频：https://www.bilibili.com/video/BV1tqFPzCEfm/
 
 [general]
 tts_mode = "fixed"

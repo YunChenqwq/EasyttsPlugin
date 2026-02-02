@@ -3,6 +3,7 @@
 # - 仅保留 easytts（ModelScope Studio / Gradio）后端
 # - 支持“云端仓库池”自动切换：优先选 queue_size 更小的仓库
 # - 支持“按情绪回复”：emotion 直接当作 preset 使用（无需任何映射）
+# 教程视频：https://www.bilibili.com/video/BV1tqFPzCEfm/
 # ========================================
 
 [plugin]
