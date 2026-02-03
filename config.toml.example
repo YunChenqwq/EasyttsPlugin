@@ -11,6 +11,10 @@ enabled = true # 是否启用插件
 config_version = "0.1.0" # 配置版本（请勿修改）
 
 [general]
+# 语音文本翻译策略：
+# - auto/off：不翻译（推荐中文模型，否则把中文翻成日语可能导致云端返回空音频/音频过小）
+# - ja：翻译成日语（适合日语模型/日语角色）
+voice_translate_to = "auto"
 tts_mode_group = "free" # 群聊模式：free=自然一点；fixed=逐句语音
 tts_mode_private = "free" # 私聊模式：free=自然一点；fixed=逐句语音
 default_backend = "easytts" # 默认后端（本插件仅支持 easytts）

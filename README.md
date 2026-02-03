@@ -140,9 +140,10 @@ character_1_presets = "普通,开心,伤心"
 - “合成语音的文本”：可由插件把 `text` 翻译成日语后再合成（避免中文模型读日语/日语模型读中文的问题）
 
 相关配置：
-- `general.voice_translate_to`：默认 `ja`  
-  - `ja`：把文字翻译成日语再合成语音  
-  - 设为空/`off`/`none`：不翻译，直接用原文合成  
+- `general.voice_translate_to`：默认 `auto`（推荐中文模型）  
+  - `auto` / `off`：不翻译，直接用原文合成（推荐中文模型/中文角色）  
+  - `ja`：把文字翻译成日语再合成语音（适合日语模型/日语角色）  
+  - `zh` / `en`：把文字翻译成中文/英文后再合成语音（按你的模型需求选择）  
 - `general.force_text_language`：默认 `zh`  
   - 用于避免 LLM 把日语译文发到聊天里（如果检测到 text 是日语，会再翻译回中文作为“发出去的文字”）
 
@@ -238,6 +239,7 @@ plan_style = "1.如果 unified_tts_action 的描述里包含“固定模式”�
   - `default_preset`
   - `available_presets`（该角色可用的 preset 列表）
 - 常见问题：
+  - 报错 `invalid audio data: 音频数据过小(0 < 100)`：通常是云端没有返回有效音频（常见原因：把中文翻成日语后喂给“中文模型”）。把 `general.voice_translate_to` 设为 `auto`/`off`（不翻译）再试。
   - MaiBot `0.12.x` 起移除了 `LLM_JUDGE`：本插件已改为 `activation_type=ALWAYS`，把 action 放进 Planner 可选列表，由 LLM 自己决定是否选择（效果等同“LLM_JUDGE”）。
   - 连接 ms.show 失败：检查 `base_url/studio_token`，以及是否需要代理；默认 `easytts.trust_env=false` 不走系统代理
   - 传了 emotion 但没生效：确认你没有用 `-v 角色:预设` 显式锁定 preset；并确认 emotion 值在 preset 列表里

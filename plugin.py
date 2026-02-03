@@ -430,8 +430,13 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
         将“要发送的文本”转换成“要合成语音的文本”。
         默认：若文本非日语，则用 LLM 翻译成日语；若已是日语则直接使用，保证文本/语音一致。
         """
-        target = str(self._cfg("general.voice_translate_to", "ja") or "").strip().lower()
+        target = str(self._cfg("general.voice_translate_to", "auto") or "").strip().lower()
         if not target or target in ("none", "off", "false", "0", "disable", "disabled"):
+            return text
+
+        # Auto mode: keep original language (recommended for Chinese models).
+        # Users can explicitly set ja/zh/en when they know the model expects a fixed language.
+        if target in ("auto",):
             return text
 
         # 仅对“目标为日语”做语言检测，避免把已经是日语的内容又改写一遍导致不一致。
@@ -961,10 +966,17 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
             ),
             "voice_translate_to": ConfigField(
                 type=str,
-                default="ja",
-                description="语音合成前是否把文字翻译到指定语言（默认 ja=日语；留空/none/off 表示不翻译，直接用原文合成）",
-                hint="默认 ja：把 text 翻译成日语后再合成语音；留空/off：直接用原文合成。",
-                example="ja",
+                default="auto",
+                choices=["auto", "off", "ja", "zh", "en"],
+                description=(
+                    "语音合成前是否把文字翻译到指定语言。\n"
+                    "auto=不翻译（保留原文，推荐中文模型）；ja/zh/en=翻译到对应语言；off=不翻译。"
+                ),
+                hint=(
+                    "中文模型/中文角色：推荐 auto/off（避免把中文翻成日语导致模型合成异常）。\n"
+                    "日语模型：可设为 ja（把中文翻成日语再合成）。"
+                ),
+                example="auto",
             ),
             "force_text_language": ConfigField(
                 type=str,
