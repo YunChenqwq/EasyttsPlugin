@@ -11,6 +11,8 @@ enabled = true # 是否启用插件
 config_version = "0.1.0" # 配置版本（请勿修改）
 
 [general]
+tts_mode_group = "free" # 群聊模式：free=自然一点；fixed=逐句语音
+tts_mode_private = "free" # 私聊模式：free=自然一点；fixed=逐句语音
 default_backend = "easytts" # 默认后端（本插件仅支持 easytts）
 timeout = 60 # Action/Command 总体超时（秒）
 max_text_length = 200 # 最大文本长度（超过会降级为文字回复）

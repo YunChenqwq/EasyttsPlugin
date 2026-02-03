@@ -275,6 +275,102 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
         self.timeout = int(self._cfg(ConfigKeys.GENERAL_TIMEOUT, 60) or 60)
         self.max_text_length = int(self._cfg(ConfigKeys.GENERAL_MAX_TEXT_LENGTH, 200) or 200)
 
+    def _effective_tts_mode(self) -> str:
+        """
+        Support different mode for group/private chats.
+
+        Priority:
+        - group chat: general.tts_mode_group
+        - private chat: general.tts_mode_private
+        - fallback: general.tts_mode (legacy)
+        """
+        mode = ""
+        try:
+            if bool(getattr(self, "is_group", False)):
+                mode = str(self._cfg("general.tts_mode_group", "") or "").strip().lower()
+            else:
+                mode = str(self._cfg("general.tts_mode_private", "") or "").strip().lower()
+        except Exception:
+            mode = ""
+        if not mode:
+            mode = str(self._cfg("general.tts_mode", "free") or "free").strip().lower()
+        return mode if mode in ("free", "fixed") else "free"
+
+    async def _execute_fixed_mode(self) -> Tuple[bool, str]:
+        """Fixed mode: split sentences and send voice per sentence."""
+        try:
+            raw_text = (self.action_data.get("text") or "").strip()
+            voice = (self.action_data.get("voice") or "").strip()
+            # Fixed mode: emotion can be provided to force a preset; otherwise infer per sentence.
+            base_emotion = (self.action_data.get("emotion") or "").strip()
+            reason = (self.action_data.get("reason") or "").strip()
+            user_backend = (self.action_data.get("backend") or "").strip()
+
+            use_replyer = self._cfg(ConfigKeys.GENERAL_USE_REPLYER_REWRITE, True)
+
+            success, final_text = await self._get_final_text(raw_text, reason, use_replyer)
+            if not success or not final_text:
+                logger.info(f"{self.log_prefix} 跳过语音：无法生成语音内容（text empty, fixed mode）")
+                return False, "text empty"
+
+            clean_text = TTSTextUtils.clean_text(final_text, self.max_text_length)
+            if not clean_text:
+                await self._send_error("文本处理后为空")
+                return False, "clean text empty"
+
+            backend = user_backend if user_backend in VALID_BACKENDS else self._get_default_backend()
+            send_text = bool(self._cfg("general.send_text_along_with_voice", True))
+            delay = float(self._cfg(ConfigKeys.GENERAL_SPLIT_DELAY, 0.0) or 0.0)
+            infer_emotion = bool(self._cfg("general.fixed_mode_infer_emotion", True))
+
+            sentences = TTSTextUtils.split_sentences(clean_text, min_length=1) or [clean_text]
+
+            for idx, sent in enumerate(sentences):
+                sent = TTSTextUtils.clean_text(sent, self.max_text_length)
+                if not sent:
+                    continue
+
+                if send_text:
+                    # Only send the visible text (avoid sending the JP translation).
+                    display_text = sent
+                    force_text_lang = str(self._cfg("general.force_text_language", "zh") or "").strip().lower()
+                    if force_text_lang in ("zh", "zh-cn", "chinese", "cn") and TTSTextUtils.detect_language(display_text) == "ja":
+                        zh_text = await self._translate_to_zh(display_text)
+                        if zh_text:
+                            display_text = zh_text
+                    await self.send_text(display_text)
+
+                voice_text = await self._voice_text_from_text(sent)
+                if not voice_text:
+                    logger.info(f"{self.log_prefix} 跳过语音：语音文本为空（translate/clean empty, fixed mode）")
+                    return False, "voice text empty"
+                if len(voice_text) > self.max_text_length:
+                    voice_text = voice_text[: self.max_text_length].strip()
+
+                emotion = base_emotion
+                if not emotion and infer_emotion:
+                    emotion = await self._infer_emotion(sent, voice=voice)
+
+                result = await self._execute_backend(backend, voice_text, voice, emotion)
+                if not result.success:
+                    await self._send_error(f"语音合成失败: {result.message}")
+                    return False, result.message
+
+                if delay > 0 and idx != len(sentences) - 1:
+                    await asyncio.sleep(delay)
+
+            await self.store_action_info(
+                action_build_into_prompt=True,
+                action_prompt_display="已按固定模式逐句发送语音",
+                action_done=True,
+            )
+            return True, "fixed mode ok"
+
+        except Exception as e:
+            logger.error(f"{self.log_prefix} 固定模式 TTS 出错: {e}")
+            await self._send_error(f"语音合成出错: {e}")
+            return False, str(e)
+
     async def _get_final_text(self, raw_text: str, reason: str, use_replyer: bool) -> Tuple[bool, str]:
         """
         获取最终要转语音的文本。
@@ -489,6 +585,9 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
 
     async def execute(self) -> Tuple[bool, str]:
         try:
+            if self._effective_tts_mode() == "fixed":
+                return await self._execute_fixed_mode()
+
             raw_text = (self.action_data.get("text") or "").strip()
             voice = (self.action_data.get("voice") or "").strip()
             emotion = (self.action_data.get("emotion") or "").strip()
@@ -600,82 +699,7 @@ class UnifiedTTSActionFixed(UnifiedTTSAction):
     ]
 
     async def execute(self) -> Tuple[bool, str]:
-        try:
-            raw_text = (self.action_data.get("text") or "").strip()
-            voice = (self.action_data.get("voice") or "").strip()
-            # 固定模式：emotion 默认由 LLM 按句判断（如需强制指定，可在 action_data.emotion 填值覆盖）
-            base_emotion = (self.action_data.get("emotion") or "").strip()
-            reason = (self.action_data.get("reason") or "").strip()
-            user_backend = (self.action_data.get("backend") or "").strip()
-
-            use_replyer = self._cfg(ConfigKeys.GENERAL_USE_REPLYER_REWRITE, True)
-
-            success, final_text = await self._get_final_text(raw_text, reason, use_replyer)
-            if not success or not final_text:
-                logger.info(f"{self.log_prefix} 跳过语音：无法生成语音内容（text empty）")
-                return False, "text empty"
-
-            clean_text = TTSTextUtils.clean_text(final_text, self.max_text_length)
-            if not clean_text:
-                await self._send_error("文本处理后为空")
-                return False, "clean text empty"
-
-            backend = user_backend if user_backend in VALID_BACKENDS else self._get_default_backend()
-            send_text = bool(self._cfg("general.send_text_along_with_voice", True))
-            delay = float(self._cfg(ConfigKeys.GENERAL_SPLIT_DELAY, 0.0) or 0.0)
-            infer_emotion = bool(self._cfg("general.fixed_mode_infer_emotion", True))
-
-            # 固定模式：逐句拆分（每句都单独翻译、单独发语音）
-            sentences = TTSTextUtils.split_sentences(clean_text, min_length=1)
-            if not sentences:
-                sentences = [clean_text]
-
-            for idx, sent in enumerate(sentences):
-                sent = TTSTextUtils.clean_text(sent, self.max_text_length)
-                if not sent:
-                    continue
-
-                if send_text:
-                    # 只发原句（不要把翻译后的日语发出去）
-                    display_text = sent
-                    force_text_lang = str(self._cfg("general.force_text_language", "zh") or "").strip().lower()
-                    if force_text_lang in ("zh", "zh-cn", "chinese", "cn") and TTSTextUtils.detect_language(display_text) == "ja":
-                        zh_text = await self._translate_to_zh(display_text)
-                        if zh_text:
-                            display_text = zh_text
-                    await self.send_text(display_text)
-
-                voice_text = await self._voice_text_from_text(sent)
-                if not voice_text:
-                    logger.info(f"{self.log_prefix} 跳过语音：语音文本为空（translate/clean empty）")
-                    return False, "voice text empty"
-                if len(voice_text) > self.max_text_length:
-                    voice_text = voice_text[: self.max_text_length].strip()
-
-                emotion = base_emotion
-                if not emotion and infer_emotion:
-                    # 固定模式：让 LLM 只从该角色支持的 presets 中选一个
-                    emotion = await self._infer_emotion(sent, voice=voice)
-                result = await self._execute_backend(backend, voice_text, voice, emotion)
-                if not result.success:
-                    await self._send_error(f"语音合成失败: {result.message}")
-                    return False, result.message
-
-                # 逐句之间可选延迟
-                if delay > 0 and idx != len(sentences) - 1:
-                    await asyncio.sleep(delay)
-
-            await self.store_action_info(
-                action_build_into_prompt=True,
-                action_prompt_display="已按固定模式逐句发送语音",
-                action_done=True,
-            )
-            return True, "fixed mode ok"
-
-        except Exception as e:
-            logger.error(f"{self.log_prefix} 固定模式 TTS 出错: {e}")
-            await self._send_error(f"语音合成出错: {e}")
-            return False, str(e)
+        return await self._execute_fixed_mode()
 
 
 class UnifiedTTSCommand(BaseCommand, TTSExecutorMixin):
@@ -844,12 +868,29 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
                 default="free",
                 choices=["free", "fixed"],
                 description=(
-                    "TTS 模式：free=自由模式（交给 LLM 决定是否用语音）；fixed=固定模式（逐句翻译并逐句发送语音）。"
+                    "TTS 模式（旧字段）：free=自由模式；fixed=固定模式。若同时配置了 tts_mode_group/tts_mode_private，将优先生效。"
                 ),
                 hint=(
-                    "free：Planner/LLM 按需调用 unified_tts_action（一个消息一个语音）。\n"
-                    "fixed：一旦触发，会按句拆分并逐句发送语音（更“密集”）。"
+                    "推荐改用：tts_mode_group / tts_mode_private。\n"
+                    "free：一个消息通常只发 1 条语音（更自然）。\n"
+                    "fixed：按句拆分逐句发送语音（更密集）。"
                 ),
+                example="free",
+            ),
+            "tts_mode_group": ConfigField(
+                type=str,
+                default="free",
+                choices=["free", "fixed"],
+                description="群聊 TTS 模式：free=自由模式；fixed=固定模式（逐句发语音）。",
+                hint="推荐 free：更自然；需要“全程语音/逐句语音”再用 fixed。",
+                example="free",
+            ),
+            "tts_mode_private": ConfigField(
+                type=str,
+                default="free",
+                choices=["free", "fixed"],
+                description="私聊 TTS 模式：free=自由模式；fixed=固定模式（逐句发语音）。",
+                hint="推荐 free：更自然；需要“全程语音/逐句语音”再用 fixed。",
                 example="free",
             ),
             "default_backend": ConfigField(
@@ -1486,9 +1527,8 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
         action_enabled = self._cfg(ConfigKeys.COMPONENTS_ACTION_ENABLED, True)
         command_enabled = self._cfg(ConfigKeys.COMPONENTS_COMMAND_ENABLED, True)
         if action_enabled:
-            mode = str(self._cfg("general.tts_mode", "free") or "free").strip().lower()
-            action_cls = UnifiedTTSActionFixed if mode == "fixed" else UnifiedTTSAction
-            components.append((action_cls.get_action_info(), action_cls))
+            # The action decides fixed/free at runtime per chat type (group/private).
+            components.append((UnifiedTTSAction.get_action_info(), UnifiedTTSAction))
         if command_enabled:
             components.append((UnifiedTTSCommand.get_command_info(), UnifiedTTSCommand))
             components.append((EasyttsTestCommand.get_command_info(), EasyttsTestCommand))

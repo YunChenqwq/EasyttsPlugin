@@ -119,11 +119,19 @@ character_1_presets = "普通,开心,伤心"
   - **回写到 `config.toml` 的 `character_1_name/character_1_presets ...` 槽位字段**（让小白在 WebUI 里能直接看到最新角色/情绪，不需要手动填）
 - 如果你更新了云端模型/预设，但插件没更新：删除插件目录下的 `_gradio_schema_cache.json` 后重启即可强制刷新。
 
-### 2.3 两种模式：free / fixed
+### 2.3 两种模式：free / fixed（推荐分别设置群聊/私聊）
 
-`general.tts_mode`：
-- `free`（默认）：自由模式。是否用语音由 LLM 决定；一条用户消息最多调用一次 action（一个消息一个语音）。
-- `fixed`：固定模式。一旦触发，会把回复分句，并对 **每句** 单独生成语音并发送（适合你想“每句都发语音”的场景）。
+推荐使用（可分别设置群聊/私聊）：
+
+- `general.tts_mode_group`：群聊模式（推荐 `free`）
+- `general.tts_mode_private`：私聊模式（推荐 `free`）
+
+说明：
+
+- `free`（推荐/默认）：更自然。是否用语音由 LLM 决定；一条用户消息最多调用一次 action（一个消息一个语音）。并且会自动从该角色可用 preset 中选择更合适的语气（尽量避免一直“普通”）。
+- `fixed`：更密集。一旦触发，会把回复分句，并对 **每句** 单独生成语音并发送（适合你想“每句都发语音”的场景）。
+
+旧字段 `general.tts_mode` 仍可用，但在配置了 `tts_mode_group/tts_mode_private` 时会被覆盖。
 
 ### 2.4 让“文字/语音一致”的关键设置
 
@@ -182,7 +190,8 @@ action_enabled = true
 2) 选择模式：
 ```toml
 [general]
-tts_mode = "free"   # 或 "fixed"
+tts_mode_group = "free"   # 或 "fixed"
+tts_mode_private = "free" # 或 "fixed"
 ```
 
 3) 让 LLM 会用（很重要）：  
@@ -195,7 +204,7 @@ tts_mode = "free"   # 或 "fixed"
 
 ## ⭐ 推荐提示词（plan_style）模板（强烈建议复制）
 
-你可以按 `general.tts_mode` 选择两套不同的提示词：
+你可以按 `general.tts_mode_group / general.tts_mode_private` 选择两套不同的提示词：
 
 - `tts_mode="free"`：自由模式（更像真人聊天：有时文字/emoji，有时语音）
 - `tts_mode="fixed"`：固定模式（每次触发都逐句发语音，适合“我就是想全程语音”）

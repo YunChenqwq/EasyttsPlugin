@@ -4,7 +4,9 @@ config_version = "0.1.0"
 # 教程视频：https://www.bilibili.com/video/BV1tqFPzCEfm/
 
 [general]
-tts_mode = "fixed"
+tts_mode = "free"
+tts_mode_group = "free"
+tts_mode_private = "free"
 default_backend = "easytts"
 timeout = 60
 max_text_length = 120
