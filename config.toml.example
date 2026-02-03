@@ -25,7 +25,7 @@ audio_output_dir = "" # 音频输出目录（留空使用项目根目录；use_b
 use_base64_audio = true # 是否用 base64 方式发送语音（推荐 true：无需保存文件）
 split_sentences = true # Action 是否按标点分句逐句发送语音
 split_delay = 0.3 # 分句发送间隔（秒）
-send_error_messages = true # 失败时是否给用户发送错误提示
+send_error_messages = false # 失败时是否给用户发送错误提示（默认仅写入日志）
 fixed_mode_infer_emotion = true # 固定模式：是否逐句选择语气（preset）
 free_mode_infer_emotion = true # 自由模式：是否自动选择语气（preset）
 

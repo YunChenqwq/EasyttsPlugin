@@ -226,7 +226,9 @@ class TTSExecutorMixin:
         return backend
 
     async def _send_error(self, message: str) -> None:
-        if self._cfg(ConfigKeys.GENERAL_SEND_ERROR_MESSAGES, True):
+        # Default: only log errors. Users can opt-in to sending error messages to chat.
+        logger.warning(f"{self.log_prefix} {message}")
+        if self._cfg(ConfigKeys.GENERAL_SEND_ERROR_MESSAGES, False):
             await self.send_text(message)
 
 
@@ -955,7 +957,7 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
             ),
             "send_error_messages": ConfigField(
                 type=bool,
-                default=True,
+                default=False,
                 description="失败时是否发送错误提示",
             ),
             "send_text_along_with_voice": ConfigField(

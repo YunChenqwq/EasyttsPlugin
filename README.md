@@ -147,6 +147,9 @@ character_1_presets = "普通,开心,伤心"
 - `general.force_text_language`：默认 `zh`  
   - 用于避免 LLM 把日语译文发到聊天里（如果检测到 text 是日语，会再翻译回中文作为“发出去的文字”）
 
+另外：
+- `general.send_error_messages`：默认 `false`（仅写入日志，不在聊天里刷屏）。如需把“合成失败/网络错误”等提示直接发给用户，再改为 `true`。
+
 ### 2.5 语音发送方式（NapCat 兼容）
 
 - `general.use_base64_audio = false`（默认）：生成 wav 文件后，用本地路径发送（通常更稳定/占用更小）
