@@ -474,6 +474,7 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
             user_backend = (self.action_data.get("backend") or "").strip()
 
             use_replyer = self._cfg(ConfigKeys.GENERAL_USE_REPLYER_REWRITE, True)
+            infer_emotion = bool(self._cfg("general.free_mode_infer_emotion", True))
 
             # 获取最终文本
             success, final_text = await self._get_final_text(raw_text, reason, use_replyer)
@@ -528,6 +529,14 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
                 return False, "voice text empty"
             if len(voice_text) > self.max_text_length:
                 voice_text = voice_text[: self.max_text_length].strip()
+
+            # 自由模式：默认自动按句意选择 emotion（=preset），无需用户点明。
+            # 仅在用户没有显式指定 emotion 时启用；如果 voice 写了 角色:预设，后端会忽略 emotion 覆盖。
+            if not emotion and infer_emotion:
+                try:
+                    emotion = await self._infer_emotion(clean_text, voice=voice)
+                except Exception as e:
+                    logger.error(f"{self.log_prefix} 自由模式情绪判断失败: {e}")
 
             # 后端（仅 easytts）
             backend = user_backend if user_backend in VALID_BACKENDS else self._get_default_backend()
@@ -907,6 +916,12 @@ class EasyttsPuginPlugin(BasePlugin, TTSExecutorMixin):
                 default=True,
                 description="固定模式下是否逐句调用 LLM 选择 preset（只从该角色已有 presets 中选）",
                 hint="固定模式建议开启：让每句话都能选择更合适的预设（emotion=预设名，不做映射）。",
+            ),
+            "free_mode_infer_emotion": ConfigField(
+                type=bool,
+                default=True,
+                description="自由模式下是否自动调用 LLM 选择 emotion（=preset）",
+                hint="推荐开启：不需要用户点明语气，也能自动切换（仅在未显式传 emotion 时生效）。",
             ),
         },
         "components": {

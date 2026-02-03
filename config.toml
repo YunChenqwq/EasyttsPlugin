@@ -18,6 +18,7 @@ send_text_along_with_voice = true
 voice_translate_to = "ja"
 force_text_language = "zh"
 fixed_mode_infer_emotion = true
+free_mode_infer_emotion = true
 
 [components]
 action_enabled = true

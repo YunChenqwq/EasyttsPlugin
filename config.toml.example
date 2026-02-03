@@ -20,6 +20,8 @@ use_base64_audio = true # 是否用 base64 方式发送语音（推荐 true：�
 split_sentences = true # Action 是否按标点分句逐句发送语音
 split_delay = 0.3 # 分句发送间隔（秒）
 send_error_messages = true # 失败时是否给用户发送错误提示
+fixed_mode_infer_emotion = true # 固定模式：是否逐句选择语气（preset）
+free_mode_infer_emotion = true # 自由模式：是否自动选择语气（preset）
 
 [components]
 action_enabled = true # 是否启用 Action（action 会进入 Planner 的可选列表，由 LLM 决定是否用语音回复）

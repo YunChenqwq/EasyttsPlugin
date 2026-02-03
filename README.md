@@ -206,7 +206,7 @@ tts_mode = "free"   # 或 "fixed"
 
 ```toml
 # 麦麦的说话规则（自由模式：按需用语音，更自然）
-plan_style = "1.思考所有可用 action：是否满足触发条件；满足才用；同内容执行过就不重复。\n2.默认短回复（1~2 句，<=60字），用标点分句（。？！……）让语音更自然。\n3.允许使用表情包 action: emoji 辅助情绪（不要连发）：害羞/调侃/撒娇/不想说时可用。\n4.语音 action: unified_tts_action：动作在 Planner 中始终可选，仅在更适合语音表达时使用（比如需要更有感情的安慰/撒娇/朗读/更强语气）；用户明确要求“用语音/朗读/念出来”时必须使用。\n5.选择 unified_tts_action 时：不要再额外选择其他文字回复 action；text 只写用户看到的最终短回复，不要写翻译后的日语。\n6.选择 unified_tts_action 时：voice 优先留空（让插件用 default_character/自动抓取结果）；只有你非常确定角色名时才填。\n7.选择 unified_tts_action 时：emotion 只有在你确信它是该角色真实存在的 preset 名时才填；不确定就留空，让插件用 default_preset/自动情绪。语气要更灵活：疑问句倾向“疑问”，被夸/被撩倾向“害羞/开心”，被惹毛倾向“生气”，安慰/解释倾向“认真/普通”，难过场景倾向“伤心”。"
+plan_style = "1.思考所有可用 action：是否满足触发条件；满足才用；同内容执行过就不重复。\n2.默认短回复（1~2 句，<=60字），用标点分句（。？！……）让语音更自然。\n3.允许使用表情包 action: emoji 辅助情绪（不要连发）：害羞/调侃/撒娇/不想说时可用。\n4.语音 action: unified_tts_action：动作在 Planner 中始终可选，仅在更适合语音表达时使用（比如更有感情的安慰/撒娇/朗读/更强语气）；用户明确要求“用语音/朗读/念出来”时必须使用。\n5.选择 unified_tts_action 时：不要再额外选择其他文字回复 action；text 只写用户看到的最终短回复，不要写翻译后的日语。\n6.选择 unified_tts_action 时：voice 优先留空（让插件用 default_character/自动抓取结果）；只有你非常确定角色名时才填。\n7.选择 unified_tts_action 时：emotion 通常留空即可（插件会自动从该角色可用 preset 中挑选更合适的语气）；只有当用户明确指定语气/预设时才填写 emotion（=preset）。"
 ```
 
 ### B) 固定模式（tts_mode="fixed"）推荐 plan_style
