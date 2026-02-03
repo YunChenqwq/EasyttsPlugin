@@ -442,6 +442,27 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
             if not allowed:
                 return ""
 
+            # Heuristic: avoid overusing "普通/Normal" by catching obvious cases cheaply.
+            # This keeps it responsive and reduces the chance the LLM always picks the neutral preset.
+            t = (text or "").strip()
+            if t:
+                allowed_set = set(allowed)
+                # Question -> 疑问
+                if ("?" in t or "？" in t) and "疑问" in allowed_set:
+                    return "疑问"
+                # Surprise -> 惊讶
+                if any(x in t for x in ("诶", "欸", "啊？", "啊!", "啊！", "什么？！", "真的假的", "卧槽", "我靠")) and "惊讶" in allowed_set:
+                    return "惊讶"
+                # Angry -> 生气
+                if any(x in t for x in ("烦", "别闹", "别吵", "讨厌", "生气", "气死", "滚", "闭嘴", "你有病", "可恶", "真是的")) and "生气" in allowed_set:
+                    return "生气"
+                # Happy -> 开心
+                if any(x in t for x in ("好耶", "太好了", "开心", "嘿嘿", "谢谢", "真棒", "喜欢", "耶")) and "开心" in allowed_set:
+                    return "开心"
+                # Sad -> 伤心
+                if any(x in t for x in ("难过", "伤心", "哭", "呜呜", "心痛", "好痛", "想哭", "不开心", "委屈")) and "伤心" in allowed_set:
+                    return "伤心"
+
             ok, llm_response = await generator_api.rewrite_reply(
                 chat_stream=self.chat_stream,
                 raw_reply=text,
@@ -449,7 +470,8 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
                     "请判断【原文】应该使用哪个语音预设（preset/情绪）。\n"
                     "严格要求：\n"
                     f"1) 只能从以下列表中选 1 个输出：{', '.join(allowed)}；\n"
-                    "2) 只输出情绪标签本身，不要解释、不加前缀、不加引号、不加标点。\n"
+                    "2) 尽量避免选择“普通/Normal”（除非原文确实很中性、没有明显情绪/语气）；\n"
+                    "3) 只输出情绪标签本身，不要解释、不加前缀、不加引号、不加标点。\n"
                 ),
                 enable_splitter=False,
                 enable_chinese_typo=False,
