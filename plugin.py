@@ -235,8 +235,18 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
 
     action_name = "unified_tts_action"
     action_description = "发送一条文字回复，并附带一条语音（语音内容默认为该文字的日语版本）"
-    # 让 Planner 把该动作交给 LLM 自由判断是否启用（无需用户显式说“语音/tts”）
-    activation_type = ActionActivationType.LLM_JUDGE
+    # Compatibility: older MaiBot versions may not have ActionActivationType.LLM_JUDGE.
+    # In that case we degrade to KEYWORD-triggered action so the plugin can still load.
+    try:
+        # 让 Planner 把该动作交给 LLM 自由判断是否启用（无需用户显式说“语音/tts”）
+        activation_type = ActionActivationType.LLM_JUDGE
+    except AttributeError:
+        # Older MaiBot: no LLM_JUDGE. Prefer KEYWORD, fallback to ALWAYS if needed.
+        activation_type = (
+            getattr(ActionActivationType, "KEYWORD", None)
+            or getattr(ActionActivationType, "ALWAYS", None)
+            or list(ActionActivationType)[0]
+        )
     mode_enable = ChatMode.ALL
     parallel_action = False
 

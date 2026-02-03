@@ -229,6 +229,7 @@ plan_style = "1.如果 unified_tts_action 的描述里包含“固定模式”�
   - `default_preset`
   - `available_presets`（该角色可用的 preset 列表）
 - 常见问题：
+  - 安装后报错“没有 LLM_JUDGE / ActionActivationType.LLM_JUDGE 不存在”：说明你的 MaiBot 版本太旧。插件新版本会自动降级为“关键词触发”（仍可用 `/eztts`，或在消息里包含“语音/朗读/tts/念出来”等关键词）；想要“LLM 自主决定是否语音”的效果，请升级 MaiBot 到较新版本。
   - 连接 ms.show 失败：检查 `base_url/studio_token`，以及是否需要代理；默认 `easytts.trust_env=false` 不走系统代理
   - 传了 emotion 但没生效：确认你没有用 `-v 角色:预设` 显式锁定 preset；并确认 emotion 值在 preset 列表里
 
