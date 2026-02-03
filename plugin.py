@@ -231,22 +231,13 @@ class TTSExecutorMixin:
 
 
 class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
-    """LLM 规划触发（LLM_JUDGE）"""
+    """Planner 可选的语音回复 action（由 LLM 决定是否使用）"""
 
     action_name = "unified_tts_action"
     action_description = "发送一条文字回复，并附带一条语音（语音内容默认为该文字的日语版本）"
-    # Compatibility: older MaiBot versions may not have ActionActivationType.LLM_JUDGE.
-    # In that case we degrade to KEYWORD-triggered action so the plugin can still load.
-    try:
-        # 让 Planner 把该动作交给 LLM 自由判断是否启用（无需用户显式说“语音/tts”）
-        activation_type = ActionActivationType.LLM_JUDGE
-    except AttributeError:
-        # Older MaiBot: no LLM_JUDGE. Prefer KEYWORD, fallback to ALWAYS if needed.
-        activation_type = (
-            getattr(ActionActivationType, "KEYWORD", None)
-            or getattr(ActionActivationType, "ALWAYS", None)
-            or list(ActionActivationType)[0]
-        )
+    # MaiBot >= 0.12.x 移除了 LLM_JUDGE：要实现“LLM 自己决定要不要用语音”，
+    # 直接把 action 放进 Planner 的可选列表即可（activation_type=ALWAYS），并在 action_require 里约束“别滥用”。
+    activation_type = ActionActivationType.ALWAYS
     mode_enable = ChatMode.ALL
     parallel_action = False
 
@@ -271,7 +262,7 @@ class UnifiedTTSAction(BaseAction, TTSExecutorMixin):
     }
 
     action_require = [
-        "由 LLM 自由决定是否用语音回复（LLM_JUDGE）。不要因为能用就滥用：仅在更适合语音表达时使用。",
+        "由 LLM 自由决定是否用语音回复（action 在 Planner 中始终可选）。不要因为能用就滥用：仅在更适合语音表达时使用。",
         "严格限制：对同一条用户消息，最多选择 1 次 unified_tts_action（一个消息一个语音）。",
         "若希望指定某个预设：填写 emotion（=preset）参数，并且 voice 只填角色名（不要写 `角色:预设`）。",
         "内容必须短（建议 1~2 句），否则会被截断/降级为文字。",

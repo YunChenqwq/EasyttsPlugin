@@ -22,7 +22,7 @@ split_delay = 0.3 # 分句发送间隔（秒）
 send_error_messages = true # 失败时是否给用户发送错误提示
 
 [components]
-action_enabled = true # 是否启用 Action（LLM_JUDGE：由计划器让 LLM 自由决定是否用语音回复）
+action_enabled = true # 是否启用 Action（action 会进入 Planner 的可选列表，由 LLM 决定是否用语音回复）
 command_enabled = true # 是否启用 Command（手动命令：/eztts）
 
 [easytts]
