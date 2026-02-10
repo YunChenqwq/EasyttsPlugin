@@ -49,11 +49,12 @@ class TTSFileManager:
     @classmethod
     def generate_temp_path(cls, prefix: str = "tts", suffix: str = ".wav", output_dir: str = "") -> str:
         if not output_dir:
-            resolved_dir = cls.get_project_root()
+            # Default to OS temp dir (works better for Docker/NapCat file:// usage and avoids polluting repo root).
+            resolved_dir = cls.get_temp_dir()
         else:
             resolved_dir = cls.resolve_path(output_dir)
             if not cls.ensure_dir(resolved_dir):
-                resolved_dir = cls.get_project_root()
+                resolved_dir = cls.get_temp_dir()
         filename = f"{prefix}_{uuid.uuid4().hex[:12]}{suffix}"
         return os.path.join(resolved_dir, filename)
 
@@ -107,4 +108,3 @@ class TTSFileManager:
         except Exception as e:
             logger.error(f"audio_to_base64 failed: {e}")
             return ""
-
