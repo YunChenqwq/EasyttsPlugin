@@ -60,9 +60,10 @@ class TTSBackendBase(ABC):
             base64_audio = TTSFileManager.audio_to_base64(audio_data)
             if not base64_audio:
                 return TTSResult(False, "音频转 base64 失败", backend_name=self.backend_name)
-            ok = await self._send_custom(message_type="voice", content=base64_audio)
+            # NapCat/OneBot11 more reliably supports `record(file="base64://...")` than `data:audio/wav;base64,...`
+            ok = await self._send_custom(message_type="voiceurl", content=f"base64://{base64_audio}")
             if not ok:
-                return TTSResult(False, "发送语音失败（voice/base64）", backend_name=self.backend_name)
+                return TTSResult(False, "发送语音失败（base64）", backend_name=self.backend_name)
             return TTSResult(
                 True,
                 f"已发送 {self.backend_name} 语音{(' ('+voice_info+')') if voice_info else ''}（base64）",
@@ -72,17 +73,18 @@ class TTSBackendBase(ABC):
         output_dir = self.get_config(ConfigKeys.GENERAL_AUDIO_OUTPUT_DIR, "")
         audio_path = TTSFileManager.generate_temp_path(prefix=prefix, suffix=f".{audio_format}", output_dir=output_dir)
         if not await TTSFileManager.write_audio_async(audio_path, audio_data):
-            return TTSResult(False, "????????", backend_name=self.backend_name)
+            return TTSResult(False, "save audio file failed", backend_name=self.backend_name)
 
         # Try local file first, then file:// URI, then fallback to base64.
         # Docker/NapCat deployments often cannot resolve bare absolute paths like "/xxx.wav".
-        candidates = [audio_path]
+        candidates = []
         try:
             pp = Path(audio_path)
             if pp.is_absolute():
                 candidates.append(pp.as_uri())
         except Exception:
             pass
+        candidates.append(audio_path)
 
         last_err = ""
         for c in candidates:
@@ -90,7 +92,12 @@ class TTSBackendBase(ABC):
                 ok = await self._send_custom(message_type="voiceurl", content=c)
                 if ok:
                     asyncio.create_task(TTSFileManager.cleanup_file_async(audio_path, delay=60))
-                    return TTSResult(True, f"??? {self.backend_name} ??", audio_path=audio_path, backend_name=self.backend_name)
+                    return TTSResult(
+                        True,
+                        f"sent {self.backend_name} voice (voiceurl)",
+                        audio_path=audio_path,
+                        backend_name=self.backend_name,
+                    )
             except Exception as e:
                 last_err = str(e)
 
@@ -98,14 +105,14 @@ class TTSBackendBase(ABC):
         try:
             base64_audio = TTSFileManager.audio_to_base64(audio_data)
             if base64_audio:
-                ok = await self._send_custom(message_type="voice", content=base64_audio)
+                ok = await self._send_custom(message_type="voiceurl", content=f"base64://{base64_audio}")
                 if ok:
                     asyncio.create_task(TTSFileManager.cleanup_file_async(audio_path, delay=60))
-                    return TTSResult(True, f"??? {self.backend_name} ??(base64-fallback)", backend_name=self.backend_name)
+                    return TTSResult(True, f"sent {self.backend_name} voice (base64-fallback)", backend_name=self.backend_name)
         except Exception as e:
             last_err = str(e)
 
-        return TTSResult(False, f"???????voiceurl/file + base64 fallback?: {last_err}", backend_name=self.backend_name)
+        return TTSResult(False, f"send voice failed (voiceurl/file + base64 fallback): {last_err}", backend_name=self.backend_name)
     @abstractmethod
     async def execute(self, text: str, voice: Optional[str] = None, **kwargs) -> TTSResult:
         raise NotImplementedError
